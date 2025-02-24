@@ -1,15 +1,12 @@
 package back.entities;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Formula;
 
 @Data
 @Entity
 @Table(name = "enrollment")
-@AllArgsConstructor
-@NoArgsConstructor
 public class Enrollment {
 
   @EmbeddedId
@@ -25,9 +22,15 @@ public class Enrollment {
   @JoinColumn(name = "subject_id")
   private Subject subject;
 
-  @Column(name = "mark")
-  private Float mark;
+  @Column(name = "total_mark", insertable = false, updatable = false)
+  @Formula("(SELECT COALESCE(SUM(ts.mark), 0) FROM task_submission ts " +
+      "JOIN task t ON ts.task_id = t.id " +
+      "WHERE ts.person_id = person_id AND t.subject_id = subject_id)")
+  private Float totalMark;
 
-  @Column(name = "max_mark")
-  private Float maxMark;
+  @Column(name = "total_max_mark", insertable = false, updatable = false)
+  @Formula("(SELECT COALESCE(SUM(ts.max_mark), 0) FROM task_submission ts " +
+      "JOIN task t ON ts.task_id = t.id " +
+      "WHERE ts.person_id = person_id AND t.subject_id = subject_id)")
+  private Float totalMaxMark;
 }

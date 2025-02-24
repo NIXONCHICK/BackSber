@@ -2,7 +2,6 @@ package back.entities;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.util.Date;
 
 @Getter
@@ -26,17 +25,8 @@ public class Task {
   @Column(name = "description")
   private String description;
 
-  @Column(name = "is_done")
-  private boolean isDone;
-
-  @Column(name = "is_uploaded")
-  private boolean isUploaded;
-
-  @Column(name = "mark")
-  private float mark;
-
-  @Column(name = "max_mark")
-  private float maxMark;
+  @Column(name = "assignments_url")
+  private String assignmentsUrl;
 
   @ManyToOne
   @JoinColumn(name = "subject_id")
