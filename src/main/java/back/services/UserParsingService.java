@@ -1,10 +1,13 @@
 package back.services;
 
 import back.dto.LoginRequest;
+import back.entities.Enrollment;
+import back.entities.EnrollmentId;
 import back.entities.Person;
 import back.entities.Subject;
 import back.repositories.PersonRepository;
 import back.repositories.SubjectRepository;
+import back.repositories.EnrollmentRepository;
 import back.util.SeleniumUtil;
 import lombok.RequiredArgsConstructor;
 import org.jsoup.nodes.Document;
@@ -25,11 +28,13 @@ public class UserParsingService {
 
   private final PersonRepository personRepository;
   private final SubjectRepository subjectRepository;
+  private final EnrollmentRepository enrollmentRepository;
   private final PageParsingService pageParsingService;
 
   @Async
   @Transactional
   public void parseAndUpdateUser(LoginRequest loginRequest, long id) {
+    // Находим ученика (Person) по id
     Optional<Person> personOptional = personRepository.findById(id);
     if (personOptional.isEmpty()) {
       return;
@@ -43,6 +48,7 @@ public class UserParsingService {
     personRepository.save(person);
 
     try {
+      // Загружаем HTML-страницу (например, личный кабинет)
       String url = "https://lms.sfedu.ru/my/";
       Document document = pageParsingService.parsePage(url, moodleSession);
 
@@ -72,12 +78,31 @@ public class UserParsingService {
         if (subject == null) {
           subject = new Subject();
           subject.setAssignmentsUrl(href);
-          subject.setPerson(person);
+          subject.setName(title);
+          subject.setSemesterDate(java.sql.Date.valueOf(semesterDate));
+          subjectRepository.save(subject);
+        } else {
+          // Обновляем данные предмета
+          subject.setName(title);
+          subject.setSemesterDate(java.sql.Date.valueOf(semesterDate));
+          subjectRepository.save(subject);
         }
-        subject.setName(title);
-        subject.setSemesterDate(java.sql.Date.valueOf(semesterDate));
 
-        subjectRepository.save(subject);
+        // Создаем связь между учеником и предметом через Enrollment, если она ещё не существует
+        Enrollment enrollment = enrollmentRepository.findByPersonIdAndSubjectId(person.getId(), subject.getId());
+        if (enrollment == null) {
+          enrollment = new Enrollment();
+          EnrollmentId enrollmentId = new EnrollmentId();
+          enrollmentId.setPersonId(person.getId());
+          enrollmentId.setSubjectId(subject.getId());
+          enrollment.setId(enrollmentId);
+          enrollment.setPerson(person);
+          enrollment.setSubject(subject);
+          // Устанавливаем начальные оценки (например, 0)
+          enrollment.setMark(0f);
+          enrollment.setMaxMark(0f);
+          enrollmentRepository.save(enrollment);
+        }
       }
     } catch (Exception e) {
       e.printStackTrace();

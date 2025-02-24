@@ -13,7 +13,7 @@
 //<![CDATA[
 var M = {}; M.yui = {};
 M.pageloadstarttime = new Date();
-M.cfg = {"wwwroot":"https:\/\/lms.sfedu.ru","homeurl":{},"sesskey":"ucD7YI1dXT","sessiontimeout":"7200","sessiontimeoutwarning":1200,"themerev":"1739443558","slasharguments":1,"theme":"boost","iconsystemmodule":"core\/icon_system_fontawesome","jsrev":"1739443558","admin":"admin","svgicons":true,"usertimezone":"\u0415\u0432\u0440\u043e\u043f\u0430\/\u041c\u043e\u0441\u043a\u0432\u0430","courseId":1,"courseContextId":2,"contextid":70595,"contextInstanceId":8360,"langrev":1739443558,"templaterev":"1739443558","developerdebug":true};var yui1ConfigFn = function(me) {if(/-skin|reset|fonts|grids|base/.test(me.name)){me.type='css';me.path=me.path.replace(/\.js/,'.css');me.path=me.path.replace(/\/yui2-skin/,'/assets/skins/sam/yui2-skin')}};
+M.cfg = {"wwwroot":"https:\/\/lms.sfedu.ru","homeurl":{},"sesskey":"kcZca4AtVK","sessiontimeout":"7200","sessiontimeoutwarning":1200,"themerev":"1739443558","slasharguments":1,"theme":"boost","iconsystemmodule":"core\/icon_system_fontawesome","jsrev":"1739443558","admin":"admin","svgicons":true,"usertimezone":"\u0415\u0432\u0440\u043e\u043f\u0430\/\u041c\u043e\u0441\u043a\u0432\u0430","courseId":1,"courseContextId":2,"contextid":70595,"contextInstanceId":8360,"langrev":1740273784,"templaterev":"1739443558","developerdebug":true};var yui1ConfigFn = function(me) {if(/-skin|reset|fonts|grids|base/.test(me.name)){me.type='css';me.path=me.path.replace(/\.js/,'.css');me.path=me.path.replace(/\/yui2-skin/,'/assets/skins/sam/yui2-skin')}};
 var yui2ConfigFn = function(me) {var parts=me.name.replace(/^moodle-/,'').split('-'),component=parts.shift(),module=parts[0],min='-min';if(/-(skin|core)$/.test(me.name)){parts.pop();me.type='css';min=''}
 if(module){var filename=parts.join('-');me.path=component+'/'+module+'/'+filename+min+'.'+me.type}else{me.path=component+'/'+component+'.'+me.type}};
 YUI_config = {"debug":true,"base":"https:\/\/lms.sfedu.ru\/lib\/yuilib\/3.17.2\/","comboBase":"https:\/\/lms.sfedu.ru\/theme\/yui_combo.php?","combine":true,"filter":"RAW","insertBefore":"firstthemesheet","groups":{"yui2":{"base":"https:\/\/lms.sfedu.ru\/lib\/yuilib\/2in3\/2.9.0\/build\/","comboBase":"https:\/\/lms.sfedu.ru\/theme\/yui_combo.php?","combine":true,"ext":false,"root":"2in3\/2.9.0\/build\/","patterns":{"yui2-":{"group":"yui2","configFn":yui1ConfigFn}}},"moodle":{"name":"moodle","base":"https:\/\/lms.sfedu.ru\/theme\/yui_combo.php?m\/1739443558\/","combine":true,"comboBase":"https:\/\/lms.sfedu.ru\/theme\/yui_combo.php?","ext":false,"root":"m\/1739443558\/","patterns":{"moodle-":{"group":"moodle","configFn":yui2ConfigFn}},"filter":"DEBUG","modules":{"moodle-core-blocks":{"requires":["base","node","io","dom","dd","dd-scroll","moodle-core-dragdrop","moodle-core-notification"]},"moodle-core-lockscroll":{"requires":["plugin","base-build"]},"moodle-core-notification":{"requires":["moodle-core-notification-dialogue","moodle-core-notification-alert","moodle-core-notification-confirm","moodle-core-notification-exception","moodle-core-notification-ajaxexception"]},"moodle-core-notification-dialogue":{"requires":["base","node","panel","escape","event-key","dd-plugin","moodle-core-widget-focusafterclose","moodle-core-lockscroll"]},"moodle-core-notification-alert":{"requires":["moodle-core-notification-dialogue"]},"moodle-core-notification-confirm":{"requires":["moodle-core-notification-dialogue"]},"moodle-core-notification-exception":{"requires":["moodle-core-notification-dialogue"]},"moodle-core-notification-ajaxexception":{"requires":["moodle-core-notification-dialogue"]},"moodle-core-maintenancemodetimer":{"requires":["base","node"]},"moodle-core-handlebars":{"condition":{"trigger":"handlebars","when":"after"}},"moodle-core-languninstallconfirm":{"requires":["base","node","moodle-core-notification-confirm","moodle-core-notification-alert"]},"moodle-core-chooserdialogue":{"requires":["base","panel","moodle-core-notification"]},"moodle-core-event":{"requires":["event-custom"]},"moodle-core-popuphelp":{"requires":["moodle-core-tooltip"]},"moodle-core-formchangechecker":{"requires":["base","event-focus","moodle-core-event"]},"moodle-core-tooltip":{"requires":["base","node","io-base","moodle-core-notification-dialogue","json-parse","widget-position","widget-position-align","event-outside","cache-base"]},"moodle-core-dragdrop":{"requires":["base","node","io","dom","dd","event-key","event-focus","moodle-core-notification"]},"moodle-core-actionmenu":{"requires":["base","event","node-event-simulate"]},"moodle-core_availability-form":{"requires":["base","node","event","event-delegate","panel","moodle-core-notification-dialogue","json"]},"moodle-backup-backupselectall":{"requires":["node","event","node-event-simulate","anim"]},"moodle-backup-confirmcancel":{"requires":["node","node-event-simulate","moodle-core-notification-confirm"]},"moodle-course-util":{"requires":["node"],"use":["moodle-course-util-base"],"submodules":{"moodle-course-util-base":{},"moodle-course-util-section":{"requires":["node","moodle-course-util-base"]},"moodle-course-util-cm":{"requires":["node","moodle-course-util-base"]}}},"moodle-course-categoryexpander":{"requires":["node","event-key"]},"moodle-course-management":{"requires":["base","node","io-base","moodle-core-notification-exception","json-parse","dd-constrain","dd-proxy","dd-drop","dd-delegate","node-event-delegate"]},"moodle-course-dragdrop":{"requires":["base","node","io","dom","dd","dd-scroll","moodle-core-dragdrop","moodle-core-notification","moodle-course-coursebase","moodle-course-util"]},"moodle-form-dateselector":{"requires":["base","node","overlay","calendar"]},"moodle-form-shortforms":{"requires":["node","base","selector-css3","moodle-core-event"]},"moodle-form-passwordunmask":{"requires":[]},"moodle-question-chooser":{"requires":["moodle-core-chooserdialogue"]},"moodle-question-preview":{"requires":["base","dom","event-delegate","event-key","core_question_engine"]},"moodle-question-searchform":{"requires":["base","node"]},"moodle-availability_aero-form":{"requires":["base","node","event","moodle-core_availability-form"]},"moodle-availability_completion-form":{"requires":["base","node","event","moodle-core_availability-form"]},"moodle-availability_date-form":{"requires":["base","node","event","io","moodle-core_availability-form"]},"moodle-availability_grade-form":{"requires":["base","node","event","moodle-core_availability-form"]},"moodle-availability_group-form":{"requires":["base","node","event","moodle-core_availability-form"]},"moodle-availability_grouping-form":{"requires":["base","node","event","moodle-core_availability-form"]},"moodle-availability_profile-form":{"requires":["base","node","event","moodle-core_availability-form"]},"moodle-mod_assign-history":{"requires":["node","transition"]},"moodle-mod_attendance-groupfilter":{"requires":["base","node"]},"moodle-mod_checklist-linkselect":{"requires":["node","event-valuechange"]},"moodle-mod_quiz-util":{"requires":["node","moodle-core-actionmenu"],"use":["moodle-mod_quiz-util-base"],"submodules":{"moodle-mod_quiz-util-base":{},"moodle-mod_quiz-util-slot":{"requires":["node","moodle-mod_quiz-util-base"]},"moodle-mod_quiz-util-page":{"requires":["node","moodle-mod_quiz-util-base"]}}},"moodle-mod_quiz-toolboxes":{"requires":["base","node","event","event-key","io","moodle-mod_quiz-quizbase","moodle-mod_quiz-util-slot","moodle-core-notification-ajaxexception"]},"moodle-mod_quiz-questionchooser":{"requires":["moodle-core-chooserdialogue","moodle-mod_quiz-util","querystring-parse"]},"moodle-mod_quiz-modform":{"requires":["base","node","event"]},"moodle-mod_quiz-quizbase":{"requires":["base","node"]},"moodle-mod_quiz-autosave":{"requires":["base","node","event","event-valuechange","node-event-delegate","io-form"]},"moodle-mod_quiz-dragdrop":{"requires":["base","node","io","dom","dd","dd-scroll","moodle-core-dragdrop","moodle-core-notification","moodle-mod_quiz-quizbase","moodle-mod_quiz-util-base","moodle-mod_quiz-util-page","moodle-mod_quiz-util-slot","moodle-course-util"]},"moodle-mod_scheduler-saveseen":{"requires":["base","node","event"]},"moodle-mod_scheduler-studentlist":{"requires":["base","node","event","io"]},"moodle-mod_scheduler-delselected":{"requires":["base","node","event"]},"moodle-message_airnotifier-toolboxes":{"requires":["base","node","io"]},"moodle-filter_glossary-autolinker":{"requires":["base","node","io-base","json-parse","event-delegate","overlay","moodle-core-event","moodle-core-notification-alert","moodle-core-notification-exception","moodle-core-notification-ajaxexception"]},"moodle-filter_mathjaxloader-loader":{"requires":["moodle-core-event"]},"moodle-editor_atto-editor":{"requires":["node","transition","io","overlay","escape","event","event-simulate","event-custom","node-event-html5","node-event-simulate","yui-throttle","moodle-core-notification-dialogue","moodle-core-notification-confirm","moodle-editor_atto-rangy","handlebars","timers","querystring-stringify"]},"moodle-editor_atto-plugin":{"requires":["node","base","escape","event","event-outside","handlebars","event-custom","timers","moodle-editor_atto-menu"]},"moodle-editor_atto-menu":{"requires":["moodle-core-notification-dialogue","node","event","event-custom"]},"moodle-editor_atto-rangy":{"requires":[]},"moodle-report_eventlist-eventfilter":{"requires":["base","event","node","node-event-delegate","datatable","autocomplete","autocomplete-filters"]},"moodle-report_loglive-fetchlogs":{"requires":["base","event","node","io","node-event-delegate"]},"moodle-gradereport_history-userselector":{"requires":["escape","event-delegate","event-key","handlebars","io-base","json-parse","moodle-core-notification-dialogue"]},"moodle-qbank_editquestion-chooser":{"requires":["moodle-core-chooserdialogue"]},"moodle-tool_capability-search":{"requires":["base","node"]},"moodle-tool_lp-dragdrop-reorder":{"requires":["moodle-core-dragdrop"]},"moodle-tool_monitor-dropdown":{"requires":["base","event","node"]},"moodle-assignfeedback_editpdf-editor":{"requires":["base","event","node","io","graphics","json","event-move","event-resize","transition","querystring-stringify-simple","moodle-core-notification-dialog","moodle-core-notification-alert","moodle-core-notification-warning","moodle-core-notification-exception","moodle-core-notification-ajaxexception"]},"moodle-atto_accessibilitychecker-button":{"requires":["color-base","moodle-editor_atto-plugin"]},"moodle-atto_accessibilityhelper-button":{"requires":["moodle-editor_atto-plugin"]},"moodle-atto_aktruvideo-button":{"requires":["moodle-editor_atto-plugin"]},"moodle-atto_align-button":{"requires":["moodle-editor_atto-plugin"]},"moodle-atto_bold-button":{"requires":["moodle-editor_atto-plugin"]},"moodle-atto_charmap-button":{"requires":["moodle-editor_atto-plugin"]},"moodle-atto_clear-button":{"requires":["moodle-editor_atto-plugin"]},"moodle-atto_collapse-button":{"requires":["moodle-editor_atto-plugin"]},"moodle-atto_emojipicker-button":{"requires":["moodle-editor_atto-plugin"]},"moodle-atto_emoticon-button":{"requires":["moodle-editor_atto-plugin"]},"moodle-atto_equation-button":{"requires":["moodle-editor_atto-plugin","moodle-core-event","io","event-valuechange","tabview","array-extras"]},"moodle-atto_h5p-button":{"requires":["moodle-editor_atto-plugin"]},"moodle-atto_html-codemirror":{"requires":["moodle-atto_html-codemirror-skin"]},"moodle-atto_html-beautify":{},"moodle-atto_html-button":{"requires":["promise","moodle-editor_atto-plugin","moodle-atto_html-beautify","moodle-atto_html-codemirror","event-valuechange"]},"moodle-atto_image-button":{"requires":["moodle-editor_atto-plugin"]},"moodle-atto_indent-button":{"requires":["moodle-editor_atto-plugin"]},"moodle-atto_italic-button":{"requires":["moodle-editor_atto-plugin"]},"moodle-atto_link-button":{"requires":["moodle-editor_atto-plugin"]},"moodle-atto_managefiles-usedfiles":{"requires":["node","escape"]},"moodle-atto_managefiles-button":{"requires":["moodle-editor_atto-plugin"]},"moodle-atto_media-button":{"requires":["moodle-editor_atto-plugin","moodle-form-shortforms"]},"moodle-atto_noautolink-button":{"requires":["moodle-editor_atto-plugin"]},"moodle-atto_orderedlist-button":{"requires":["moodle-editor_atto-plugin"]},"moodle-atto_recordrtc-recording":{"requires":["moodle-atto_recordrtc-button"]},"moodle-atto_recordrtc-button":{"requires":["moodle-editor_atto-plugin","moodle-atto_recordrtc-recording"]},"moodle-atto_rtl-button":{"requires":["moodle-editor_atto-plugin"]},"moodle-atto_strike-button":{"requires":["moodle-editor_atto-plugin"]},"moodle-atto_subscript-button":{"requires":["moodle-editor_atto-plugin"]},"moodle-atto_superscript-button":{"requires":["moodle-editor_atto-plugin"]},"moodle-atto_table-button":{"requires":["moodle-editor_atto-plugin","moodle-editor_atto-menu","event","event-valuechange"]},"moodle-atto_teamsmeeting-button":{"requires":["moodle-editor_atto-plugin"]},"moodle-atto_title-button":{"requires":["moodle-editor_atto-plugin"]},"moodle-atto_underline-button":{"requires":["moodle-editor_atto-plugin"]},"moodle-atto_undo-button":{"requires":["moodle-editor_atto-plugin"]},"moodle-atto_unorderedlist-button":{"requires":["moodle-editor_atto-plugin"]}}},"gallery":{"name":"gallery","base":"https:\/\/lms.sfedu.ru\/lib\/yuilib\/gallery\/","combine":true,"comboBase":"https:\/\/lms.sfedu.ru\/theme\/yui_combo.php?","ext":false,"root":"gallery\/1739443558\/","patterns":{"gallery-":{"group":"gallery"}}}},"modules":{"core_filepicker":{"name":"core_filepicker","fullpath":"https:\/\/lms.sfedu.ru\/lib\/javascript.php\/1739443558\/repository\/filepicker.js","requires":["base","node","node-event-simulate","json","async-queue","io-base","io-upload-iframe","io-form","yui2-treeview","panel","cookie","datatable","datatable-sort","resize-plugin","dd-plugin","escape","moodle-core_filepicker","moodle-core-notification-dialogue"]},"core_comment":{"name":"core_comment","fullpath":"https:\/\/lms.sfedu.ru\/lib\/javascript.php\/1739443558\/comment\/comment.js","requires":["base","io-base","node","json","yui2-animation","overlay","escape"]},"mathjax":{"name":"mathjax","fullpath":"https:\/\/cdn.jsdelivr.net\/npm\/mathjax@2.7.9\/MathJax.js?delayStartupUntil=configured"}}};
@@ -44,13 +44,13 @@ document.body.className += ' jsenabled';
     </div><a href="https://lms.sfedu.ru/my/" class="navbar-brand d-none d-md-flex align-items-center m-0 mr-4 p-0 aabtn"> СЭО ИКТИБ ЮФУ </a>
     <div class="primary-navigation">
      <nav class="moremenu navigation">
-      <ul id="moremenu-67b9cbc43b103-navbar-nav" role="menubar" class="nav more-nav navbar-nav">
+      <ul id="moremenu-67bc5d7decc82-navbar-nav" role="menubar" class="nav more-nav navbar-nav">
        <li data-key="home" class="nav-item" role="none" data-forceintomoremenu="false"><a role="menuitem" class="nav-link  " href="https://lms.sfedu.ru/?redirect=0" tabindex="-1"> В начало </a></li>
        <li data-key="myhome" class="nav-item" role="none" data-forceintomoremenu="false"><a role="menuitem" class="nav-link active " href="https://lms.sfedu.ru/my/" aria-current="true"> Личный кабинет </a></li>
        <li data-key="mycourses" class="nav-item" role="none" data-forceintomoremenu="false"><a role="menuitem" class="nav-link  " href="https://lms.sfedu.ru/my/courses.php" tabindex="-1"> Мои курсы </a></li>
        <li data-key="" class="nav-item" role="none" data-forceintomoremenu="false"><a role="menuitem" class="nav-link  " href="https://lms.sfedu.ru/course/" tabindex="-1"> Все курсы </a></li>
-       <li role="none" class="nav-item dropdown dropdownmoremenu d-none" data-region="morebutton"><a class="dropdown-toggle nav-link " href="#" id="moremenu-dropdown-67b9cbc43b103" role="menuitem" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" tabindex="-1"> Дополнительно </a>
-        <ul class="dropdown-menu dropdown-menu-left" data-region="moredropdown" aria-labelledby="moremenu-dropdown-67b9cbc43b103" role="menu">
+       <li role="none" class="nav-item dropdown dropdownmoremenu d-none" data-region="morebutton"><a class="dropdown-toggle nav-link " href="#" id="moremenu-dropdown-67bc5d7decc82" role="menuitem" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" tabindex="-1"> Дополнительно </a>
+        <ul class="dropdown-menu dropdown-menu-left" data-region="moredropdown" aria-labelledby="moremenu-dropdown-67bc5d7decc82" role="menu">
         </ul></li>
       </ul>
      </nav>
@@ -60,13 +60,13 @@ document.body.className += ' jsenabled';
     </ul>
     <div id="usernavigation" class="navbar-nav ml-auto">
      <div class="popover-region collapsed popover-region-notifications" id="nav-notification-popover-container" data-userid="8360" data-region="popover-region">
-      <div class="popover-region-toggle nav-link icon-no-margin" data-region="popover-region-toggle" role="button" aria-controls="popover-region-container-67b9cbc4868a067b9cbc4330335" aria-haspopup="true" aria-label="  Показать окно с новыми уведомлениями (7)  " tabindex="0">
+      <div class="popover-region-toggle nav-link icon-no-margin" data-region="popover-region-toggle" role="button" aria-controls="popover-region-container-67bc5d7e3cbe967bc5d7de57955" aria-haspopup="true" aria-label="  Показать окно с новыми уведомлениями (6)  " tabindex="0">
        <i class="icon fa fa-bell-o fa-fw " title="Уведомления" role="img" aria-label="Уведомления"></i>
        <div class="count-container " data-region="count-container" aria-hidden="true">
-        7
+        6
        </div>
       </div>
-      <div id="popover-region-container-67b9cbc4868a067b9cbc4330335" class="popover-region-container" data-region="popover-region-container" aria-expanded="false" aria-hidden="true" aria-label="Окно уведомления" role="region">
+      <div id="popover-region-container-67bc5d7e3cbe967bc5d7de57955" class="popover-region-container" data-region="popover-region-container" aria-expanded="false" aria-hidden="true" aria-label="Окно уведомления" role="region">
        <div class="popover-region-header-container">
         <h3 class="popover-region-header-text" data-region="popover-region-header-text">Уведомления</h3>
         <div class="popover-region-header-actions" data-region="popover-region-header-actions">
@@ -89,7 +89,7 @@ document.body.className += ' jsenabled';
       </div>
      </div>
      <div class="popover-region collapsed" data-region="popover-region-messages">
-      <a id="message-drawer-toggle-67b9cbc4886c667b9cbc4330336" class="nav-link popover-region-toggle position-relative icon-no-margin" href="#" role="button"> <i class="icon fa fa-comment-o fa-fw " title="Сообщения" role="img" aria-label="Сообщения"></i>
+      <a id="message-drawer-toggle-67bc5d7e3e3ed67bc5d7de57956" class="nav-link popover-region-toggle position-relative icon-no-margin" href="#" role="button"> <i class="icon fa fa-comment-o fa-fw " title="Сообщения" role="img" aria-label="Сообщения"></i>
        <div class="count-container " data-region="count-container">
         <span aria-hidden="true">2</span> <span class="sr-only">Непрочитанных бесед: 2</span>
        </div></a> <span class="sr-only sr-only-focusable" data-region="jumpto" tabindex="-1"></span>
@@ -103,16 +103,16 @@ document.body.className += ' jsenabled';
           <div class="carousel-inner">
            <div id="carousel-item-main" class="carousel-item active" role="menu" tabindex="-1" aria-label="Пользователь">
             <a href="https://lms.sfedu.ru/user/profile.php" class="dropdown-item" role="menuitem" tabindex="-1"> О пользователе </a> <a href="https://lms.sfedu.ru/grade/report/overview/index.php" class="dropdown-item" role="menuitem" tabindex="-1"> Оценки </a> <a href="https://lms.sfedu.ru/calendar/view.php?view=month" class="dropdown-item" role="menuitem" tabindex="-1"> Календарь </a> <a href="https://lms.sfedu.ru/message/index.php" class="dropdown-item" role="menuitem" tabindex="-1"> Сообщения </a> <a href="https://lms.sfedu.ru/user/files.php" class="dropdown-item" role="menuitem" tabindex="-1"> Личные файлы </a> <a href="https://lms.sfedu.ru/reportbuilder/index.php" class="dropdown-item" role="menuitem" tabindex="-1"> Отчеты </a> <a href="https://lms.sfedu.ru/local/yumymedia/yumymedia.php" class="dropdown-item" role="menuitem" tabindex="-1"> Мои Актру видео </a>
-            <div class="dropdown-divider"></div><a href="https://lms.sfedu.ru/user/preferences.php" class="dropdown-item" role="menuitem" tabindex="-1"> Настройки </a> <a href="#" class="carousel-navigation-link dropdown-item" role="menuitem" tabindex="-1" data-carousel-target-id="carousel-item-67b9cbc43b44b"> Язык </a>
-            <div class="dropdown-divider"></div><a href="https://lms.sfedu.ru/login/logout.php?sesskey=ucD7YI1dXT" class="dropdown-item" role="menuitem" tabindex="-1"> Выход </a>
+            <div class="dropdown-divider"></div><a href="https://lms.sfedu.ru/user/preferences.php" class="dropdown-item" role="menuitem" tabindex="-1"> Настройки </a> <a href="#" class="carousel-navigation-link dropdown-item" role="menuitem" tabindex="-1" data-carousel-target-id="carousel-item-67bc5d7decf96"> Язык </a>
+            <div class="dropdown-divider"></div><a href="https://lms.sfedu.ru/login/logout.php?sesskey=kcZca4AtVK" class="dropdown-item" role="menuitem" tabindex="-1"> Выход </a>
            </div>
-           <div id="carousel-item-67b9cbc43b44b" role="menu" class="carousel-item submenu" tabindex="-1" aria-label="Выбор языка">
+           <div id="carousel-item-67bc5d7decf96" role="menu" class="carousel-item submenu" tabindex="-1" aria-label="Выбор языка">
             <div class="d-flex flex-column h-100">
              <div class="header">
-              <button type="button" class="btn btn-icon carousel-navigation-link text-decoration-none text-body" data-carousel-target-id="carousel-item-main" aria-label="Вернуться в меню пользователя"><span class="dir-rtl-hide"><img class="icon " alt="" aria-hidden="true" src="https://lms.sfedu.ru/theme/image.php/boost/core/1739443558/i/arrow-left"></span> <span class="dir-ltr-hide"><img class="icon " alt="" aria-hidden="true" src="https://lms.sfedu.ru/theme/image.php/boost/core/1739443558/i/arrow-right"></span></button><span class="pl-2" id="carousel-item-title-67b9cbc43b44b">Выбор языка</span>
+              <button type="button" class="btn btn-icon carousel-navigation-link text-decoration-none text-body" data-carousel-target-id="carousel-item-main" aria-label="Вернуться в меню пользователя"><span class="dir-rtl-hide"><img class="icon " alt="" aria-hidden="true" src="https://lms.sfedu.ru/theme/image.php/boost/core/1739443558/i/arrow-left"></span> <span class="dir-ltr-hide"><img class="icon " alt="" aria-hidden="true" src="https://lms.sfedu.ru/theme/image.php/boost/core/1739443558/i/arrow-right"></span></button><span class="pl-2" id="carousel-item-title-67bc5d7decf96">Выбор языка</span>
              </div>
              <div class="dropdown-divider"></div>
-             <div class="items h-100 overflow-auto" role="menu" aria-labelledby="carousel-item-title-67b9cbc43b44b">
+             <div class="items h-100 overflow-auto" role="menu" aria-labelledby="carousel-item-title-67bc5d7decf96">
               <a href="#" class="dropdown-item pl-5" role="menuitem" tabindex="-1" aria-current="true"> Русский ‎(ru)‎ </a> <a href="https://lms.sfedu.ru/my/index.php?lang=en" class="dropdown-item pl-5" role="menuitem" tabindex="-1" lang="en"> English ‎(en)‎ </a>
              </div>
             </div>
@@ -126,11 +126,11 @@ document.body.className += ' jsenabled';
      <div class="divider border-left h-75 align-self-center ml-1 mr-3"></div>
      <form action="https://lms.sfedu.ru/editmode.php" method="post" class="d-flex align-items-center editmode-switch-form">
       <div class="input-group">
-       <label class="mr-2 mb-0 " for="67b9cbc4894f067b9cbc4330337-editingswitch"> Режим редактирования </label>
+       <label class="mr-2 mb-0 " for="67bc5d7e3f22a67bc5d7de57957-editingswitch"> Режим редактирования </label>
        <div class="custom-control custom-switch">
-        <input type="checkbox" name="setmode" class="custom-control-input" id="67b9cbc4894f067b9cbc4330337-editingswitch" data-context="70595" data-pageurl="https://lms.sfedu.ru/my/index.php"> <span class="custom-control-label">&nbsp;</span>
+        <input type="checkbox" name="setmode" class="custom-control-input" id="67bc5d7e3f22a67bc5d7de57957-editingswitch" data-context="70595" data-pageurl="https://lms.sfedu.ru/my/index.php"> <span class="custom-control-label">&nbsp;</span>
        </div>
-      </div><input type="hidden" name="sesskey" value="ucD7YI1dXT"> <input type="hidden" name="pageurl" value="https://lms.sfedu.ru/my/index.php"> <input type="hidden" name="context" value="70595">
+      </div><input type="hidden" name="sesskey" value="kcZca4AtVK"> <input type="hidden" name="pageurl" value="https://lms.sfedu.ru/my/index.php"> <input type="hidden" name="context" value="70595">
       <noscript>
        <input type="submit" value="Установить режим">
       </noscript>
@@ -159,9 +159,9 @@ document.body.className += ' jsenabled';
         <div class="card-body p-3">
          <h5 id="instance-77882-header" class="card-title d-inline">Недавно посещенные элементы</h5>
          <div class="card-text content mt-3">
-          <div id="block-recentlyaccesseditems-67b9cbc43302f67b9cbc4330331" class="block-recentlyaccesseditems block-cards" data-region="recentlyaccesseditems">
+          <div id="block-recentlyaccesseditems-67bc5d7de579267bc5d7de57951" class="block-recentlyaccesseditems block-cards" data-region="recentlyaccesseditems">
            <div class="container-fluid p-0">
-            <div id="recentlyaccesseditems-view-67b9cbc43302f67b9cbc4330331" data-region="recentlyaccesseditems-view" data-noitemsimgurl="https://lms.sfedu.ru/theme/image.php/boost/block_recentlyaccesseditems/1739443558/items">
+            <div id="recentlyaccesseditems-view-67bc5d7de579267bc5d7de57951" data-region="recentlyaccesseditems-view" data-noitemsimgurl="https://lms.sfedu.ru/theme/image.php/boost/block_recentlyaccesseditems/1739443558/items">
              <div data-region="recentlyaccesseditems-view-content">
               <div data-region="recentlyaccesseditems-loading-placeholder">
                <div class="card-deck dashboard-card-deck one-row">
@@ -278,7 +278,7 @@ document.body.className += ' jsenabled';
               <div id="coc-filterlist" class="container-fluid">
                <div class="row">
                 <div class="coc-filter span12 col-md-12 mb-3">
-                 <label for="coc-filterterm">Семестр</label><select name="coc-term" id="coc-filterterm" class="input-block-level form-control"><option value="all">Все</option> <option value="2025-1">2025 Весенний семестр</option> <option selected value="2024-2">2024 Осенний семестр</option> <option value="2024-1">2024 Весенний семестр</option> <option value="2023-2">2023 Осенний семестр</option> <option value="2023-1">2023 Весенний семестр</option> <option value="2022-2">2022 Осенний семестр</option> <option value="2022-1">2022 Весенний семестр</option> <option value="2021-2">2021 Осенний семестр</option> </select>
+                 <label for="coc-filterterm">Семестр</label><select name="coc-term" id="coc-filterterm" class="input-block-level form-control"><option value="all">Все</option> <option selected value="2025-1">2025 Весенний семестр</option> <option value="2024-2">2024 Осенний семестр</option> <option value="2024-1">2024 Весенний семестр</option> <option value="2023-2">2023 Осенний семестр</option> <option value="2023-1">2023 Весенний семестр</option> <option value="2022-2">2022 Осенний семестр</option> <option value="2022-1">2022 Весенний семестр</option> <option value="2021-2">2021 Осенний семестр</option> </select>
                 </div>
                </div>
               </div>
@@ -301,18 +301,6 @@ document.body.className += ' jsenabled';
                 </div>
                </div>
               </div>
-              <div id="coc-course-2169" class="row coc-course">
-               <div class="hidecoursediv coc-hidecourse-2169">
-                <div class="termdiv coc-term-2023-2 coc-hidden">
-                 <div class="box py-3 coursebox">
-                  <div class="hidecourseicon">
-                   <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse=2169&amp;coc-showcourse" id="coc-hidecourseicon-2169" title="Скрыть курс из списка обзора курсов"><i class="icon fa fa-toggle-on fa-lg fa-fw " title="Скрыть курс из списка обзора курсов" role="img" aria-label="Скрыть курс из списка обзора курсов"></i></a> <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse&amp;coc-showcourse=2169" id="coc-showcourseicon-2169" class="coc-hidden" title="Показать курс"><i class="icon fa fa-toggle-off fa-lg fa-fw " title="Показать курс" role="img" aria-label="Показать курс"></i></a>
-                  </div>
-                  <h3><a title="Архитектура, технологии и инструментальные средства разработки программного обеспечения - 2023/2024" href="https://lms.sfedu.ru/course/view.php?id=2169">Архитектура, технологии и инструментальные средства разработки программного обеспечения - 2023/2024<br><span class="coc-metainfo">(2023 Осенний семестр)</span></a></h3>
-                 </div>
-                </div>
-               </div>
-              </div>
               <div id="coc-course-1858" class="row coc-course">
                <div class="hidecoursediv coc-hidecourse-1858">
                 <div class="termdiv coc-term-2024-1 coc-hidden">
@@ -321,6 +309,18 @@ document.body.className += ' jsenabled';
                    <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse=1858&amp;coc-showcourse" id="coc-hidecourseicon-1858" title="Скрыть курс из списка обзора курсов"><i class="icon fa fa-toggle-on fa-lg fa-fw " title="Скрыть курс из списка обзора курсов" role="img" aria-label="Скрыть курс из списка обзора курсов"></i></a> <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse&amp;coc-showcourse=1858" id="coc-showcourseicon-1858" class="coc-hidden" title="Показать курс"><i class="icon fa fa-toggle-off fa-lg fa-fw " title="Показать курс" role="img" aria-label="Показать курс"></i></a>
                   </div>
                   <h3><a title="Архитектура, технологии и инструментальные средства разработки программного обеспечения (МОПЭВМ, 2023/24, весна)" href="https://lms.sfedu.ru/course/view.php?id=1858">Архитектура, технологии и инструментальные средства разработки программного обеспечения (МОПЭВМ, 2023/24, весна)<br><span class="coc-metainfo">(2024 Весенний семестр)</span></a></h3>
+                 </div>
+                </div>
+               </div>
+              </div>
+              <div id="coc-course-2169" class="row coc-course">
+               <div class="hidecoursediv coc-hidecourse-2169">
+                <div class="termdiv coc-term-2023-2 coc-hidden">
+                 <div class="box py-3 coursebox">
+                  <div class="hidecourseicon">
+                   <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse=2169&amp;coc-showcourse" id="coc-hidecourseicon-2169" title="Скрыть курс из списка обзора курсов"><i class="icon fa fa-toggle-on fa-lg fa-fw " title="Скрыть курс из списка обзора курсов" role="img" aria-label="Скрыть курс из списка обзора курсов"></i></a> <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse&amp;coc-showcourse=2169" id="coc-showcourseicon-2169" class="coc-hidden" title="Показать курс"><i class="icon fa fa-toggle-off fa-lg fa-fw " title="Показать курс" role="img" aria-label="Показать курс"></i></a>
+                  </div>
+                  <h3><a title="Архитектура, технологии и инструментальные средства разработки программного обеспечения - 2023/2024" href="https://lms.sfedu.ru/course/view.php?id=2169">Архитектура, технологии и инструментальные средства разработки программного обеспечения - 2023/2024<br><span class="coc-metainfo">(2023 Осенний семестр)</span></a></h3>
                  </div>
                 </div>
                </div>
@@ -373,30 +373,6 @@ document.body.className += ' jsenabled';
                 </div>
                </div>
               </div>
-              <div id="coc-course-2315" class="row coc-course">
-               <div class="hidecoursediv coc-hidecourse-2315">
-                <div class="termdiv coc-term-2024-1 coc-hidden">
-                 <div class="box py-3 coursebox">
-                  <div class="hidecourseicon">
-                   <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse=2315&amp;coc-showcourse" id="coc-hidecourseicon-2315" title="Скрыть курс из списка обзора курсов"><i class="icon fa fa-toggle-on fa-lg fa-fw " title="Скрыть курс из списка обзора курсов" role="img" aria-label="Скрыть курс из списка обзора курсов"></i></a> <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse&amp;coc-showcourse=2315" id="coc-showcourseicon-2315" class="coc-hidden" title="Показать курс"><i class="icon fa fa-toggle-off fa-lg fa-fw " title="Показать курс" role="img" aria-label="Показать курс"></i></a>
-                  </div>
-                  <h3><a title="ВПК-1. Технологии разработки серверной части веб-приложений, 2024" href="https://lms.sfedu.ru/course/view.php?id=2315">ВПК-1. Технологии разработки серверной части веб-приложений, 2024<br><span class="coc-metainfo">(2024 Весенний семестр)</span></a></h3>
-                 </div>
-                </div>
-               </div>
-              </div>
-              <div id="coc-course-2601" class="row coc-course">
-               <div class="hidecoursediv coc-hidecourse-2601">
-                <div class="termdiv coc-term-2024-2">
-                 <div class="box py-3 coursebox">
-                  <div class="hidecourseicon">
-                   <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse=2601&amp;coc-showcourse" id="coc-hidecourseicon-2601" title="Скрыть курс из списка обзора курсов"><i class="icon fa fa-toggle-on fa-lg fa-fw " title="Скрыть курс из списка обзора курсов" role="img" aria-label="Скрыть курс из списка обзора курсов"></i></a> <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse&amp;coc-showcourse=2601" id="coc-showcourseicon-2601" class="coc-hidden" title="Показать курс"><i class="icon fa fa-toggle-off fa-lg fa-fw " title="Показать курс" role="img" aria-label="Показать курс"></i></a>
-                  </div>
-                  <h3><a title="ВПК-1. Технологии разработки серверной части веб-приложений 2, 2024" href="https://lms.sfedu.ru/course/view.php?id=2601">ВПК-1. Технологии разработки серверной части веб-приложений 2, 2024<br><span class="coc-metainfo">(2024 Осенний семестр)</span></a></h3>
-                 </div>
-                </div>
-               </div>
-              </div>
               <div id="coc-course-2314" class="row coc-course">
                <div class="hidecoursediv coc-hidecourse-2314">
                 <div class="termdiv coc-term-2024-1 coc-hidden">
@@ -411,7 +387,7 @@ document.body.className += ' jsenabled';
               </div>
               <div id="coc-course-2600" class="row coc-course">
                <div class="hidecoursediv coc-hidecourse-2600">
-                <div class="termdiv coc-term-2024-2">
+                <div class="termdiv coc-term-2024-2 coc-hidden">
                  <div class="box py-3 coursebox">
                   <div class="hidecourseicon">
                    <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse=2600&amp;coc-showcourse" id="coc-hidecourseicon-2600" title="Скрыть курс из списка обзора курсов"><i class="icon fa fa-toggle-on fa-lg fa-fw " title="Скрыть курс из списка обзора курсов" role="img" aria-label="Скрыть курс из списка обзора курсов"></i></a> <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse&amp;coc-showcourse=2600" id="coc-showcourseicon-2600" class="coc-hidden" title="Показать курс"><i class="icon fa fa-toggle-off fa-lg fa-fw " title="Показать курс" role="img" aria-label="Показать курс"></i></a>
@@ -421,9 +397,33 @@ document.body.className += ' jsenabled';
                 </div>
                </div>
               </div>
+              <div id="coc-course-2315" class="row coc-course">
+               <div class="hidecoursediv coc-hidecourse-2315">
+                <div class="termdiv coc-term-2024-1 coc-hidden">
+                 <div class="box py-3 coursebox">
+                  <div class="hidecourseicon">
+                   <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse=2315&amp;coc-showcourse" id="coc-hidecourseicon-2315" title="Скрыть курс из списка обзора курсов"><i class="icon fa fa-toggle-on fa-lg fa-fw " title="Скрыть курс из списка обзора курсов" role="img" aria-label="Скрыть курс из списка обзора курсов"></i></a> <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse&amp;coc-showcourse=2315" id="coc-showcourseicon-2315" class="coc-hidden" title="Показать курс"><i class="icon fa fa-toggle-off fa-lg fa-fw " title="Показать курс" role="img" aria-label="Показать курс"></i></a>
+                  </div>
+                  <h3><a title="ВПК-1. Технологии разработки серверной части веб-приложений, 2024" href="https://lms.sfedu.ru/course/view.php?id=2315">ВПК-1. Технологии разработки серверной части веб-приложений, 2024<br><span class="coc-metainfo">(2024 Весенний семестр)</span></a></h3>
+                 </div>
+                </div>
+               </div>
+              </div>
+              <div id="coc-course-2601" class="row coc-course">
+               <div class="hidecoursediv coc-hidecourse-2601">
+                <div class="termdiv coc-term-2024-2 coc-hidden">
+                 <div class="box py-3 coursebox">
+                  <div class="hidecourseicon">
+                   <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse=2601&amp;coc-showcourse" id="coc-hidecourseicon-2601" title="Скрыть курс из списка обзора курсов"><i class="icon fa fa-toggle-on fa-lg fa-fw " title="Скрыть курс из списка обзора курсов" role="img" aria-label="Скрыть курс из списка обзора курсов"></i></a> <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse&amp;coc-showcourse=2601" id="coc-showcourseicon-2601" class="coc-hidden" title="Показать курс"><i class="icon fa fa-toggle-off fa-lg fa-fw " title="Показать курс" role="img" aria-label="Показать курс"></i></a>
+                  </div>
+                  <h3><a title="ВПК-1. Технологии разработки серверной части веб-приложений 2, 2024" href="https://lms.sfedu.ru/course/view.php?id=2601">ВПК-1. Технологии разработки серверной части веб-приложений 2, 2024<br><span class="coc-metainfo">(2024 Осенний семестр)</span></a></h3>
+                 </div>
+                </div>
+               </div>
+              </div>
               <div id="coc-course-2613" class="row coc-course">
                <div class="hidecoursediv coc-hidecourse-2613">
-                <div class="termdiv coc-term-2024-2">
+                <div class="termdiv coc-term-2024-2 coc-hidden">
                  <div class="box py-3 coursebox">
                   <div class="hidecourseicon">
                    <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse=2613&amp;coc-showcourse" id="coc-hidecourseicon-2613" title="Скрыть курс из списка обзора курсов"><i class="icon fa fa-toggle-on fa-lg fa-fw " title="Скрыть курс из списка обзора курсов" role="img" aria-label="Скрыть курс из списка обзора курсов"></i></a> <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse&amp;coc-showcourse=2613" id="coc-showcourseicon-2613" class="coc-hidden" title="Показать курс"><i class="icon fa fa-toggle-off fa-lg fa-fw " title="Показать курс" role="img" aria-label="Показать курс"></i></a>
@@ -493,18 +493,6 @@ document.body.className += ' jsenabled';
                 </div>
                </div>
               </div>
-              <div id="coc-course-2244" class="row coc-course">
-               <div class="hidecoursediv coc-hidecourse-2244">
-                <div class="termdiv coc-term-2023-2 coc-hidden">
-                 <div class="box py-3 coursebox">
-                  <div class="hidecourseicon">
-                   <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse=2244&amp;coc-showcourse" id="coc-hidecourseicon-2244" title="Скрыть курс из списка обзора курсов"><i class="icon fa fa-toggle-on fa-lg fa-fw " title="Скрыть курс из списка обзора курсов" role="img" aria-label="Скрыть курс из списка обзора курсов"></i></a> <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse&amp;coc-showcourse=2244" id="coc-showcourseicon-2244" class="coc-hidden" title="Показать курс"><i class="icon fa fa-toggle-off fa-lg fa-fw " title="Показать курс" role="img" aria-label="Показать курс"></i></a>
-                  </div>
-                  <h3><a title="Инженерия программного обеспечения для систем реального времени и Интернета вещей" href="https://lms.sfedu.ru/course/view.php?id=2244">Инженерия программного обеспечения для систем реального времени и Интернета вещей<br><span class="coc-metainfo">(2023 Осенний семестр)</span></a></h3>
-                 </div>
-                </div>
-               </div>
-              </div>
               <div id="coc-course-1806" class="row coc-course">
                <div class="hidecoursediv coc-hidecourse-1806">
                 <div class="termdiv coc-term-2023-1 coc-hidden">
@@ -513,6 +501,18 @@ document.body.className += ' jsenabled';
                    <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse=1806&amp;coc-showcourse" id="coc-hidecourseicon-1806" title="Скрыть курс из списка обзора курсов"><i class="icon fa fa-toggle-on fa-lg fa-fw " title="Скрыть курс из списка обзора курсов" role="img" aria-label="Скрыть курс из списка обзора курсов"></i></a> <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse&amp;coc-showcourse=1806" id="coc-showcourseicon-1806" class="coc-hidden" title="Показать курс"><i class="icon fa fa-toggle-off fa-lg fa-fw " title="Показать курс" role="img" aria-label="Показать курс"></i></a>
                   </div>
                   <h3><a title="Инженерия ПО для СРВ и ИВ (часть 1) (2022-2023)" href="https://lms.sfedu.ru/course/view.php?id=1806">Инженерия ПО для СРВ и ИВ (часть 1) (2022-2023)<br><span class="coc-metainfo">(2023 Весенний семестр)</span></a></h3>
+                 </div>
+                </div>
+               </div>
+              </div>
+              <div id="coc-course-2244" class="row coc-course">
+               <div class="hidecoursediv coc-hidecourse-2244">
+                <div class="termdiv coc-term-2023-2 coc-hidden">
+                 <div class="box py-3 coursebox">
+                  <div class="hidecourseicon">
+                   <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse=2244&amp;coc-showcourse" id="coc-hidecourseicon-2244" title="Скрыть курс из списка обзора курсов"><i class="icon fa fa-toggle-on fa-lg fa-fw " title="Скрыть курс из списка обзора курсов" role="img" aria-label="Скрыть курс из списка обзора курсов"></i></a> <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse&amp;coc-showcourse=2244" id="coc-showcourseicon-2244" class="coc-hidden" title="Показать курс"><i class="icon fa fa-toggle-off fa-lg fa-fw " title="Показать курс" role="img" aria-label="Показать курс"></i></a>
+                  </div>
+                  <h3><a title="Инженерия программного обеспечения для систем реального времени и Интернета вещей" href="https://lms.sfedu.ru/course/view.php?id=2244">Инженерия программного обеспечения для систем реального времени и Интернета вещей<br><span class="coc-metainfo">(2023 Осенний семестр)</span></a></h3>
                  </div>
                 </div>
                </div>
@@ -531,7 +531,7 @@ document.body.className += ' jsenabled';
               </div>
               <div id="coc-course-2346" class="row coc-course">
                <div class="hidecoursediv coc-hidecourse-2346">
-                <div class="termdiv coc-term-2025-1 coc-hidden">
+                <div class="termdiv coc-term-2025-1">
                  <div class="box py-3 coursebox">
                   <div class="hidecourseicon">
                    <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse=2346&amp;coc-showcourse" id="coc-hidecourseicon-2346" title="Скрыть курс из списка обзора курсов"><i class="icon fa fa-toggle-on fa-lg fa-fw " title="Скрыть курс из списка обзора курсов" role="img" aria-label="Скрыть курс из списка обзора курсов"></i></a> <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse&amp;coc-showcourse=2346" id="coc-showcourseicon-2346" class="coc-hidden" title="Показать курс"><i class="icon fa fa-toggle-off fa-lg fa-fw " title="Показать курс" role="img" aria-label="Показать курс"></i></a>
@@ -637,18 +637,6 @@ document.body.className += ' jsenabled';
                 </div>
                </div>
               </div>
-              <div id="coc-course-1538" class="row coc-course">
-               <div class="hidecoursediv coc-hidecourse-1538">
-                <div class="termdiv coc-term-2022-2 coc-hidden">
-                 <div class="box py-3 coursebox">
-                  <div class="hidecourseicon">
-                   <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse=1538&amp;coc-showcourse" id="coc-hidecourseicon-1538" title="Скрыть курс из списка обзора курсов"><i class="icon fa fa-toggle-on fa-lg fa-fw " title="Скрыть курс из списка обзора курсов" role="img" aria-label="Скрыть курс из списка обзора курсов"></i></a> <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse&amp;coc-showcourse=1538" id="coc-showcourseicon-1538" class="coc-hidden" title="Показать курс"><i class="icon fa fa-toggle-off fa-lg fa-fw " title="Показать курс" role="img" aria-label="Показать курс"></i></a>
-                  </div>
-                  <h3><a title="Основы проектной деятельности, 3 семестр, 2022-2023" href="https://lms.sfedu.ru/course/view.php?id=1538">Основы проектной деятельности, 3 семестр, 2022-2023<br><span class="coc-metainfo">(2022 Осенний семестр)</span></a></h3>
-                 </div>
-                </div>
-               </div>
-              </div>
               <div id="coc-course-1327" class="row coc-course">
                <div class="hidecoursediv coc-hidecourse-1327">
                 <div class="termdiv coc-term-2022-1 coc-hidden">
@@ -657,6 +645,18 @@ document.body.className += ' jsenabled';
                    <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse=1327&amp;coc-showcourse" id="coc-hidecourseicon-1327" title="Скрыть курс из списка обзора курсов"><i class="icon fa fa-toggle-on fa-lg fa-fw " title="Скрыть курс из списка обзора курсов" role="img" aria-label="Скрыть курс из списка обзора курсов"></i></a> <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse&amp;coc-showcourse=1327" id="coc-showcourseicon-1327" class="coc-hidden" title="Показать курс"><i class="icon fa fa-toggle-off fa-lg fa-fw " title="Показать курс" role="img" aria-label="Показать курс"></i></a>
                   </div>
                   <h3><a title="Основы проектной деятельности, 2 семестр, 2021-2022" href="https://lms.sfedu.ru/course/view.php?id=1327">Основы проектной деятельности, 2 семестр, 2021-2022<br><span class="coc-metainfo">(2022 Весенний семестр)</span></a></h3>
+                 </div>
+                </div>
+               </div>
+              </div>
+              <div id="coc-course-1538" class="row coc-course">
+               <div class="hidecoursediv coc-hidecourse-1538">
+                <div class="termdiv coc-term-2022-2 coc-hidden">
+                 <div class="box py-3 coursebox">
+                  <div class="hidecourseicon">
+                   <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse=1538&amp;coc-showcourse" id="coc-hidecourseicon-1538" title="Скрыть курс из списка обзора курсов"><i class="icon fa fa-toggle-on fa-lg fa-fw " title="Скрыть курс из списка обзора курсов" role="img" aria-label="Скрыть курс из списка обзора курсов"></i></a> <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse&amp;coc-showcourse=1538" id="coc-showcourseicon-1538" class="coc-hidden" title="Показать курс"><i class="icon fa fa-toggle-off fa-lg fa-fw " title="Показать курс" role="img" aria-label="Показать курс"></i></a>
+                  </div>
+                  <h3><a title="Основы проектной деятельности, 3 семестр, 2022-2023" href="https://lms.sfedu.ru/course/view.php?id=1538">Основы проектной деятельности, 3 семестр, 2022-2023<br><span class="coc-metainfo">(2022 Осенний семестр)</span></a></h3>
                  </div>
                 </div>
                </div>
@@ -723,7 +723,7 @@ document.body.className += ' jsenabled';
               </div>
               <div id="coc-course-2659" class="row coc-course">
                <div class="hidecoursediv coc-hidecourse-2659">
-                <div class="termdiv coc-term-2024-2">
+                <div class="termdiv coc-term-2024-2 coc-hidden">
                  <div class="box py-3 coursebox">
                   <div class="hidecourseicon">
                    <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse=2659&amp;coc-showcourse" id="coc-hidecourseicon-2659" title="Скрыть курс из списка обзора курсов"><i class="icon fa fa-toggle-on fa-lg fa-fw " title="Скрыть курс из списка обзора курсов" role="img" aria-label="Скрыть курс из списка обзора курсов"></i></a> <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse&amp;coc-showcourse=2659" id="coc-showcourseicon-2659" class="coc-hidden" title="Показать курс"><i class="icon fa fa-toggle-off fa-lg fa-fw " title="Показать курс" role="img" aria-label="Показать курс"></i></a>
@@ -735,7 +735,7 @@ document.body.className += ' jsenabled';
               </div>
               <div id="coc-course-2879" class="row coc-course">
                <div class="hidecoursediv coc-hidecourse-2879">
-                <div class="termdiv coc-term-2025-1 coc-hidden">
+                <div class="termdiv coc-term-2025-1">
                  <div class="box py-3 coursebox">
                   <div class="hidecourseicon">
                    <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse=2879&amp;coc-showcourse" id="coc-hidecourseicon-2879" title="Скрыть курс из списка обзора курсов"><i class="icon fa fa-toggle-on fa-lg fa-fw " title="Скрыть курс из списка обзора курсов" role="img" aria-label="Скрыть курс из списка обзора курсов"></i></a> <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse&amp;coc-showcourse=2879" id="coc-showcourseicon-2879" class="coc-hidden" title="Показать курс"><i class="icon fa fa-toggle-off fa-lg fa-fw " title="Показать курс" role="img" aria-label="Показать курс"></i></a>
@@ -783,7 +783,7 @@ document.body.className += ' jsenabled';
               </div>
               <div id="coc-course-2711" class="row coc-course">
                <div class="hidecoursediv coc-hidecourse-2711">
-                <div class="termdiv coc-term-2024-2">
+                <div class="termdiv coc-term-2024-2 coc-hidden">
                  <div class="box py-3 coursebox">
                   <div class="hidecourseicon">
                    <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse=2711&amp;coc-showcourse" id="coc-hidecourseicon-2711" title="Скрыть курс из списка обзора курсов"><i class="icon fa fa-toggle-on fa-lg fa-fw " title="Скрыть курс из списка обзора курсов" role="img" aria-label="Скрыть курс из списка обзора курсов"></i></a> <a href="https://lms.sfedu.ru/my/index.php?coc-manage=0&amp;coc-hidecourse&amp;coc-showcourse=2711" id="coc-showcourseicon-2711" class="coc-hidden" title="Показать курс"><i class="icon fa fa-toggle-off fa-lg fa-fw " title="Показать курс" role="img" aria-label="Показать курс"></i></a>
@@ -891,7 +891,7 @@ document.body.className += ' jsenabled';
            <div class="card-body p-3">
             <h5 id="instance-70857-header" class="card-title d-inline">Шкала времени</h5>
             <div class="card-text content mt-3">
-             <div id="block-timeline-67b9cbc45b7ab67b9cbc4330332-1" class="block-timeline" data-region="timeline">
+             <div id="block-timeline-67bc5d7e13a9467bc5d7de57952-1" class="block-timeline" data-region="timeline">
               <div class="p-0 px-2">
                <div class="row no-gutters">
                 <div class="mr-2 mb-1">
@@ -908,15 +908,15 @@ document.body.className += ' jsenabled';
                  <div data-region="view-selector" class="btn-group mb-1">
                   <button type="button" class="btn btn-outline-secondary dropdown-toggle icon-no-margin" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Сортировать элементы шкалы времени" aria-controls="menusortby" title="Сортировать элементы шкалы времени" aria-describedby="timeline-view-selector-current-selection"><span id="timeline-view-selector-current-selection" data-active-item-text> Сортировать по дате </span></button>
                   <div id="menusortby" role="menu" class="dropdown-menu dropdown-menu-right list-group hidden" data-show-active-item data-skip-active-class="true">
-                   <a class="dropdown-item" href="#view_dates_67b9cbc45b7ab67b9cbc4330332-1" data-toggle="tab" data-filtername="sortbydates" aria-current="true" aria-label="Вариант сортировки «Сортировать по дате»" role="menuitem"> Сортировать по дате </a> <a class="dropdown-item" href="#view_courses_67b9cbc45b7ab67b9cbc4330332-1" data-toggle="tab" data-filtername="sortbycourses" aria-label="Вариант сортировки «Сортировать по курсам»" role="menuitem"> Сортировать по курсам </a>
+                   <a class="dropdown-item" href="#view_dates_67bc5d7e13a9467bc5d7de57952-1" data-toggle="tab" data-filtername="sortbydates" aria-current="true" aria-label="Вариант сортировки «Сортировать по дате»" role="menuitem"> Сортировать по дате </a> <a class="dropdown-item" href="#view_courses_67bc5d7e13a9467bc5d7de57952-1" data-toggle="tab" data-filtername="sortbycourses" aria-label="Вариант сортировки «Сортировать по курсам»" role="menuitem"> Сортировать по курсам </a>
                   </div>
                  </div>
                 </div>
                 <div class="col-md-6 col-sm-8 col-12 mb-1 d-flex justify-content-end nav-search">
                  <div class="w-100">
-                  <div id="searchform-auto-67b9cbc45b7ab67b9cbc4330332" class="form-inline simplesearchform">
+                  <div id="searchform-auto-67bc5d7e13a9467bc5d7de57952" class="form-inline simplesearchform">
                    <div class="input-group searchbar w-100" role="search">
-                    <label for="searchinput-67b9cbc45b7ab67b9cbc4330332"> <span class="sr-only">Поиск по типу или названию активных элементов</span> </label> <input type="text" role="searchbox" data-region="input" data-action="search" id="searchinput-67b9cbc45b7ab67b9cbc4330332" class="form-control withclear rounded" placeholder="Поиск по типу или названию активных элементов" name="search" value="" autocomplete="off">
+                    <label for="searchinput-67bc5d7e13a9467bc5d7de57952"> <span class="sr-only">Поиск по типу или названию активных элементов</span> </label> <input type="text" role="searchbox" data-region="input" data-action="search" id="searchinput-67bc5d7e13a9467bc5d7de57952" class="form-control withclear rounded" placeholder="Поиск по типу или названию активных элементов" name="search" value="" autocomplete="off">
                     <button class="btn btn-clear d-none" data-action="clearsearch" type="button"><i class="icon fa fa-times fa-fw " aria-hidden="true"></i> <span class="sr-only">Очистить поле поиска</span></button>
                    </div>
                   </div>
@@ -928,9 +928,9 @@ document.body.className += ' jsenabled';
               <div class="p-0">
                <div data-region="timeline-view">
                 <div class="tab-content">
-                 <div class="tab-pane active show fade" data-limit="5" data-region="view-dates" id="view_dates_67b9cbc45b7ab67b9cbc4330332-1">
+                 <div class="tab-pane active show fade" data-limit="5" data-region="view-dates" id="view_dates_67bc5d7e13a9467bc5d7de57952-1">
                   <div data-region="timeline-view-dates">
-                   <div data-region="event-list-container" data-days-offset="0" data-days-limit="7" data-course-id="" data-midnight="1740171600">
+                   <div data-region="event-list-container" data-days-offset="0" data-days-limit="7" data-course-id="" data-midnight="1740344400">
                     <div data-region="event-list-loading-placeholder">
                      <ul class="pl-0 list-group list-group-flush">
                       <li class="list-group-item px-2">
@@ -1031,7 +1031,7 @@ document.body.className += ' jsenabled';
                    </div>
                   </div>
                  </div>
-                 <div class="tab-pane  fade" data-region="view-courses" data-midnight="1740171600" data-limit="2" data-offset="0" data-days-limit="7" data-days-offset="0" data-no-events-url="https://lms.sfedu.ru/theme/image.php/boost/block_timeline/1739443558/activities" id="view_courses_67b9cbc45b7ab67b9cbc4330332-1">
+                 <div class="tab-pane  fade" data-region="view-courses" data-midnight="1740344400" data-limit="2" data-offset="0" data-days-limit="7" data-days-offset="0" data-no-events-url="https://lms.sfedu.ru/theme/image.php/boost/block_timeline/1739443558/activities" id="view_courses_67bc5d7e13a9467bc5d7de57952-1">
                   <div data-region="course-items-loading-placeholder">
                    <ul class="list-group unstyled">
                     <li class="list-group-item mt-3 p-0 px-2 border-0">
@@ -1247,19 +1247,19 @@ document.body.className += ' jsenabled';
             <h5 id="instance-70856-header" class="card-title d-inline">Календарь</h5>
             <div class="card-text content mt-3">
              <div data-region="calendar" class="maincalendar">
-              <div id="calendar-month-67b9cbc482bb667b9cbc4330333-1" data-template="core_calendar/month_detailed">
+              <div id="calendar-month-67bc5d7e390a967bc5d7de57953-1" data-template="core_calendar/month_detailed">
                <div class="header d-flex flex-wrap p-1">
                 <label class="sr-only" for="calendar-course-filter-1">Список курсов</label><select class="select custom-select cal_courses_flt ml-1 mr-auto" id="calendar-course-filter-1" name="course"><option selected value="1">Все курсы</option><option value="1335">Mathematics, 2, 2022</option><option value="1858">АТиИС РПО</option><option value="2169">АТИСРПО</option><option value="1791">БД и СУБД 4 22-23</option><option value="1519">БИТ 22-23</option><option value="1325">ВвИД 2 2021-2022</option><option value="1129">ВвИД 2021</option><option value="2314">ВПК-1 Клиентская часть 24</option><option value="2600">ВПК-1 Клиентская часть 2 24-25</option><option value="2315">ВПК-1 Серверная часть 24</option><option value="2601">ВПК-1 Серверная часть 2 24</option><option value="2613">ВПК-9 ППИ 24</option><option value="2328">ВПК-9 ЦАДПИ 24</option><option value="1916">Выбор ВПК 23</option><option value="1178">ДМ (2021-2022)</option><option value="1175">ДМ 21/22</option><option value="2132">ИИиАД (2023)</option><option value="1806">ИПО для СРВиИВ (ч1) (2022-2023)</option><option value="2244">ИПОСРВЦОСиИВ</option><option value="2346">Ия_6 семестр Заблоцкая</option><option value="1884">КСЕ 22-23</option><option value="1326">Математика 2 2021-2022</option><option value="1184">Математика</option><option value="1634">Математика 3 22-23</option><option value="2018">МО 5 23-24</option><option value="1593">МОП 2022</option><option value="1810">МСС 4 22-23</option><option value="1327">ОПД 2 2021-2022</option><option value="1538">ОПД 3 22-23</option><option value="1692">ОСиСПО (2022-2023)</option><option value="1118">ПиОТА-1 (2021-2022)</option><option value="1366">ПиОТА-2 (2021-2022)</option><option value="2659">ПКГ</option><option value="1180">ППСР 2021-2022 (Лызь)</option><option value="1328">Пр.Математика 2 2021-2022</option><option value="1881">Практики МСС (2022-2023)</option><option value="1145">Практикум по подготовке ИД (2021-2022)</option><option value="2879">ПроПрМОП2025</option><option value="2067">РМП</option><option value="1554">РРсИБТ 3 22-23</option><option value="1381">СиАОД (2021-2022)</option><option value="2711">СТИПО 24-25</option><option value="1347">ТП1 2022</option><option value="1616">ТП2 2022-2023</option><option value="2293">ТПР 23-24</option><option value="2381">УПРПО 2024</option><option value="1553">ЭИиКМИ 3 22-23</option><option value="1816">ЭИиКМИ в 22-23</option><option value="1155">ЭПО ИД ЭКОНОМИКА 21-22</option></select>
                 <button class="btn btn-primary float-sm-right float-right" data-context-id="2" data-action="new-event-button">Новое событие</button>
                </div>
                <div class="calendarwrapper" data-courseid="1" data-context-id="2" data-month="2" data-year="2025" data-view="monthblock">
-                <div id="month-navigation-67b9cbc482bb667b9cbc4330333-1" class="controls">
+                <div id="month-navigation-67bc5d7e390a967bc5d7de57953-1" class="controls">
                  <div class="calendar-controls">
                   <a href="https://lms.sfedu.ru/calendar/view.php?view=month&amp;time=1735678800" class="arrow_link previous" title="Предыдущий месяц" data-year="2025" data-month="1" data-drop-zone="nav-link"> <span class="arrow">◄</span> &nbsp; <span class="arrow_text">янв.</span> </a> <span class="hide"> | </span>
                   <h4 class="current">февр. 2025</h4><span class="hide"> | </span> <a href="https://lms.sfedu.ru/calendar/view.php?view=month&amp;time=1740776400" class="arrow_link next" title="Следующий месяц" data-year="2025" data-month="3" data-drop-zone="nav-link"> <span class="arrow_text">мар.</span> &nbsp; <span class="arrow">►</span> </a>
                  </div>
                 </div><span class="overlay-icon-container hidden" data-region="overlay-icon-container"> <span class="loading-icon icon-no-margin"><i class="icon fa fa-circle-o-notch fa-spin fa-fw " title="Загрузка" role="img" aria-label="Загрузка"></i></span> </span>
-                <table id="month-detailed-67b9cbc482bb667b9cbc4330333-1" class="calendarmonth calendartable mb-0">
+                <table id="month-detailed-67bc5d7e390a967bc5d7de57953-1" class="calendarmonth calendartable mb-0">
                  <thead>
                   <tr>
                    <th class="header text-xs-center"><span class="sr-only">Понедельник</span> <span aria-hidden="true">Пн</span></th>
@@ -1278,14 +1278,14 @@ document.body.className += ' jsenabled';
                    <td class="dayblank">&nbsp;</td>
                    <td class="dayblank">&nbsp;</td>
                    <td class="dayblank">&nbsp;</td>
-                   <td class="day text-sm-center text-md-left weekend clickable" data-day="1" data-day-timestamp="1738357200" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1738415172">
+                   <td class="day text-sm-center text-md-left weekend clickable" data-day="1" data-day-timestamp="1738357200" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1738410750">
                     <div class="d-none d-md-block hidden-phone text-xs-center">
                      <span class="sr-only">Нет событий, суббота 1 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">1</span></span></span>
                     </div>
                     <div class="d-md-none hidden-desktop hidden-tablet">
                      <span class="sr-only">Нет событий, суббота 1 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">1</span></span></span>
                     </div></td>
-                   <td class="day text-sm-center text-md-left weekend clickable" data-day="2" data-day-timestamp="1738443600" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1738501572">
+                   <td class="day text-sm-center text-md-left weekend clickable" data-day="2" data-day-timestamp="1738443600" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1738497150">
                     <div class="d-none d-md-block hidden-phone text-xs-center">
                      <span class="sr-only">Нет событий, воскресенье 2 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">2</span></span></span>
                     </div>
@@ -1294,14 +1294,14 @@ document.body.className += ' jsenabled';
                     </div></td>
                   </tr>
                   <tr data-region="month-view-week">
-                   <td class="day text-sm-center text-md-left clickable" data-day="3" data-day-timestamp="1738530000" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1738587972">
+                   <td class="day text-sm-center text-md-left clickable" data-day="3" data-day-timestamp="1738530000" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1738583550">
                     <div class="d-none d-md-block hidden-phone text-xs-center">
                      <span class="sr-only">Нет событий, понедельник 3 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">3</span></span></span>
                     </div>
                     <div class="d-md-none hidden-desktop hidden-tablet">
                      <span class="sr-only">Нет событий, понедельник 3 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">3</span></span></span>
                     </div></td>
-                   <td class="day text-sm-center text-md-left clickable hasevent" data-day="4" data-day-timestamp="1738616400" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1738674372" data-title="События - вторник 4 февраля">
+                   <td class="day text-sm-center text-md-left clickable hasevent" data-day="4" data-day-timestamp="1738616400" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1738669950" data-title="События - вторник 4 февраля">
                     <div class="d-none d-md-block hidden-phone text-xs-center">
                      <span class="sr-only">1 событие, вторник 4 февраля</span> <a data-action="view-day-link" href="#" class="aalink day" aria-label="События - вторник 4 февраля" data-year="2025" data-month="2" data-day="4" data-courseid="1" data-categoryid="0" data-timestamp="1738616400"><span class="day-number-circle"><span class="day-number">4</span></span></a>
                      <div data-region="day-content">
@@ -1319,35 +1319,35 @@ document.body.className += ' jsenabled';
                     <div class="d-md-none hidden-desktop hidden-tablet">
                      <span class="sr-only">1 событие, вторник 4 февраля</span> <a data-action="view-day-link" href="#" class="day aalink" aria-label="События - вторник 4 февраля" data-year="2025" data-month="2" data-day="4" data-courseid="1" data-categoryid="0" data-timestamp="1738616400"><span class="day-number-circle"><span class="day-number">4</span></span></a>
                     </div></td>
-                   <td class="day text-sm-center text-md-left clickable" data-day="5" data-day-timestamp="1738702800" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1738760772">
+                   <td class="day text-sm-center text-md-left clickable" data-day="5" data-day-timestamp="1738702800" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1738756350">
                     <div class="d-none d-md-block hidden-phone text-xs-center">
                      <span class="sr-only">Нет событий, среда 5 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">5</span></span></span>
                     </div>
                     <div class="d-md-none hidden-desktop hidden-tablet">
                      <span class="sr-only">Нет событий, среда 5 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">5</span></span></span>
                     </div></td>
-                   <td class="day text-sm-center text-md-left clickable" data-day="6" data-day-timestamp="1738789200" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1738847172">
+                   <td class="day text-sm-center text-md-left clickable" data-day="6" data-day-timestamp="1738789200" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1738842750">
                     <div class="d-none d-md-block hidden-phone text-xs-center">
                      <span class="sr-only">Нет событий, четверг 6 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">6</span></span></span>
                     </div>
                     <div class="d-md-none hidden-desktop hidden-tablet">
                      <span class="sr-only">Нет событий, четверг 6 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">6</span></span></span>
                     </div></td>
-                   <td class="day text-sm-center text-md-left clickable" data-day="7" data-day-timestamp="1738875600" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1738933572">
+                   <td class="day text-sm-center text-md-left clickable" data-day="7" data-day-timestamp="1738875600" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1738929150">
                     <div class="d-none d-md-block hidden-phone text-xs-center">
                      <span class="sr-only">Нет событий, пятница 7 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">7</span></span></span>
                     </div>
                     <div class="d-md-none hidden-desktop hidden-tablet">
                      <span class="sr-only">Нет событий, пятница 7 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">7</span></span></span>
                     </div></td>
-                   <td class="day text-sm-center text-md-left weekend clickable" data-day="8" data-day-timestamp="1738962000" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1739019972">
+                   <td class="day text-sm-center text-md-left weekend clickable" data-day="8" data-day-timestamp="1738962000" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1739015550">
                     <div class="d-none d-md-block hidden-phone text-xs-center">
                      <span class="sr-only">Нет событий, суббота 8 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">8</span></span></span>
                     </div>
                     <div class="d-md-none hidden-desktop hidden-tablet">
                      <span class="sr-only">Нет событий, суббота 8 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">8</span></span></span>
                     </div></td>
-                   <td class="day text-sm-center text-md-left weekend clickable" data-day="9" data-day-timestamp="1739048400" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1739106372">
+                   <td class="day text-sm-center text-md-left weekend clickable" data-day="9" data-day-timestamp="1739048400" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1739101950">
                     <div class="d-none d-md-block hidden-phone text-xs-center">
                      <span class="sr-only">Нет событий, воскресенье 9 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">9</span></span></span>
                     </div>
@@ -1356,49 +1356,49 @@ document.body.className += ' jsenabled';
                     </div></td>
                   </tr>
                   <tr data-region="month-view-week">
-                   <td class="day text-sm-center text-md-left clickable" data-day="10" data-day-timestamp="1739134800" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1739192772">
+                   <td class="day text-sm-center text-md-left clickable" data-day="10" data-day-timestamp="1739134800" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1739188350">
                     <div class="d-none d-md-block hidden-phone text-xs-center">
                      <span class="sr-only">Нет событий, понедельник 10 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">10</span></span></span>
                     </div>
                     <div class="d-md-none hidden-desktop hidden-tablet">
                      <span class="sr-only">Нет событий, понедельник 10 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">10</span></span></span>
                     </div></td>
-                   <td class="day text-sm-center text-md-left clickable" data-day="11" data-day-timestamp="1739221200" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1739279172">
+                   <td class="day text-sm-center text-md-left clickable" data-day="11" data-day-timestamp="1739221200" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1739274750">
                     <div class="d-none d-md-block hidden-phone text-xs-center">
                      <span class="sr-only">Нет событий, вторник 11 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">11</span></span></span>
                     </div>
                     <div class="d-md-none hidden-desktop hidden-tablet">
                      <span class="sr-only">Нет событий, вторник 11 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">11</span></span></span>
                     </div></td>
-                   <td class="day text-sm-center text-md-left clickable" data-day="12" data-day-timestamp="1739307600" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1739365572">
+                   <td class="day text-sm-center text-md-left clickable" data-day="12" data-day-timestamp="1739307600" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1739361150">
                     <div class="d-none d-md-block hidden-phone text-xs-center">
                      <span class="sr-only">Нет событий, среда 12 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">12</span></span></span>
                     </div>
                     <div class="d-md-none hidden-desktop hidden-tablet">
                      <span class="sr-only">Нет событий, среда 12 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">12</span></span></span>
                     </div></td>
-                   <td class="day text-sm-center text-md-left clickable" data-day="13" data-day-timestamp="1739394000" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1739451972">
+                   <td class="day text-sm-center text-md-left clickable" data-day="13" data-day-timestamp="1739394000" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1739447550">
                     <div class="d-none d-md-block hidden-phone text-xs-center">
                      <span class="sr-only">Нет событий, четверг 13 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">13</span></span></span>
                     </div>
                     <div class="d-md-none hidden-desktop hidden-tablet">
                      <span class="sr-only">Нет событий, четверг 13 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">13</span></span></span>
                     </div></td>
-                   <td class="day text-sm-center text-md-left clickable" data-day="14" data-day-timestamp="1739480400" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1739538372">
+                   <td class="day text-sm-center text-md-left clickable" data-day="14" data-day-timestamp="1739480400" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1739533950">
                     <div class="d-none d-md-block hidden-phone text-xs-center">
                      <span class="sr-only">Нет событий, пятница 14 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">14</span></span></span>
                     </div>
                     <div class="d-md-none hidden-desktop hidden-tablet">
                      <span class="sr-only">Нет событий, пятница 14 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">14</span></span></span>
                     </div></td>
-                   <td class="day text-sm-center text-md-left weekend clickable" data-day="15" data-day-timestamp="1739566800" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1739624772">
+                   <td class="day text-sm-center text-md-left weekend clickable" data-day="15" data-day-timestamp="1739566800" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1739620350">
                     <div class="d-none d-md-block hidden-phone text-xs-center">
                      <span class="sr-only">Нет событий, суббота 15 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">15</span></span></span>
                     </div>
                     <div class="d-md-none hidden-desktop hidden-tablet">
                      <span class="sr-only">Нет событий, суббота 15 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">15</span></span></span>
                     </div></td>
-                   <td class="day text-sm-center text-md-left weekend clickable" data-day="16" data-day-timestamp="1739653200" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1739711172">
+                   <td class="day text-sm-center text-md-left weekend clickable" data-day="16" data-day-timestamp="1739653200" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1739706750">
                     <div class="d-none d-md-block hidden-phone text-xs-center">
                      <span class="sr-only">Нет событий, воскресенье 16 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">16</span></span></span>
                     </div>
@@ -1407,48 +1407,48 @@ document.body.className += ' jsenabled';
                     </div></td>
                   </tr>
                   <tr data-region="month-view-week">
-                   <td class="day text-sm-center text-md-left clickable" data-day="17" data-day-timestamp="1739739600" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1739797572">
+                   <td class="day text-sm-center text-md-left clickable" data-day="17" data-day-timestamp="1739739600" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1739793150">
                     <div class="d-none d-md-block hidden-phone text-xs-center">
                      <span class="sr-only">Нет событий, понедельник 17 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">17</span></span></span>
                     </div>
                     <div class="d-md-none hidden-desktop hidden-tablet">
                      <span class="sr-only">Нет событий, понедельник 17 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">17</span></span></span>
                     </div></td>
-                   <td class="day text-sm-center text-md-left clickable" data-day="18" data-day-timestamp="1739826000" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1739883972">
+                   <td class="day text-sm-center text-md-left clickable" data-day="18" data-day-timestamp="1739826000" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1739879550">
                     <div class="d-none d-md-block hidden-phone text-xs-center">
                      <span class="sr-only">Нет событий, вторник 18 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">18</span></span></span>
                     </div>
                     <div class="d-md-none hidden-desktop hidden-tablet">
                      <span class="sr-only">Нет событий, вторник 18 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">18</span></span></span>
                     </div></td>
-                   <td class="day text-sm-center text-md-left clickable" data-day="19" data-day-timestamp="1739912400" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1739970372">
+                   <td class="day text-sm-center text-md-left clickable" data-day="19" data-day-timestamp="1739912400" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1739965950">
                     <div class="d-none d-md-block hidden-phone text-xs-center">
                      <span class="sr-only">Нет событий, среда 19 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">19</span></span></span>
                     </div>
                     <div class="d-md-none hidden-desktop hidden-tablet">
                      <span class="sr-only">Нет событий, среда 19 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">19</span></span></span>
                     </div></td>
-                   <td class="day text-sm-center text-md-left clickable" data-day="20" data-day-timestamp="1739998800" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1740056772">
+                   <td class="day text-sm-center text-md-left clickable" data-day="20" data-day-timestamp="1739998800" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1740052350">
                     <div class="d-none d-md-block hidden-phone text-xs-center">
                      <span class="sr-only">Нет событий, четверг 20 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">20</span></span></span>
                     </div>
                     <div class="d-md-none hidden-desktop hidden-tablet">
                      <span class="sr-only">Нет событий, четверг 20 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">20</span></span></span>
                     </div></td>
-                   <td class="day text-sm-center text-md-left clickable" data-day="21" data-day-timestamp="1740085200" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1740143172">
+                   <td class="day text-sm-center text-md-left clickable" data-day="21" data-day-timestamp="1740085200" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1740138750">
                     <div class="d-none d-md-block hidden-phone text-xs-center">
                      <span class="sr-only">Нет событий, пятница 21 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">21</span></span></span>
                     </div>
                     <div class="d-md-none hidden-desktop hidden-tablet">
                      <span class="sr-only">Нет событий, пятница 21 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">21</span></span></span>
                     </div></td>
-                   <td class="day text-sm-center text-md-left today weekend clickable hasevent" data-day="22" data-day-timestamp="1740171600" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1740229572" title="Сегодня" data-title="Сегодня суббота 22 февраля">
+                   <td class="day text-sm-center text-md-left weekend clickable hasevent" data-day="22" data-day-timestamp="1740171600" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1740225150" data-title="События - суббота 22 февраля">
                     <div class="d-none d-md-block hidden-phone text-xs-center">
-                     <span class="sr-only">1 событие, суббота 22 февраля</span> <a data-action="view-day-link" href="#" class="aalink day" aria-label="Сегодня суббота 22 февраля" data-year="2025" data-month="2" data-day="22" data-courseid="1" data-categoryid="0" data-timestamp="1740171600"><span class="day-number-circle"><span class="day-number">22</span></span></a>
+                     <span class="sr-only">1 событие, суббота 22 февраля</span> <a data-action="view-day-link" href="#" class="aalink day" aria-label="События - суббота 22 февраля" data-year="2025" data-month="2" data-day="22" data-courseid="1" data-categoryid="0" data-timestamp="1740171600"><span class="day-number-circle"><span class="day-number">22</span></span></a>
                      <div data-region="day-content">
                       <ul>
                        <li data-region="event-item" data-event-component="mod_assign" data-event-eventtype="due" data-event-folded="false" data-eventtype-course="1"><a data-action="view-event" data-event-id="1190463" href="https://lms.sfedu.ru/mod/assign/view.php?id=63404" title="Загрузка согласованного задания на производственную практику - срок сдачи"> <span class="calendar-circle calendar_event_course"> &nbsp; </span> <span class="eventname">Загрузка согласованного задания на производственную практику - срок сдачи</span> </a></li>
-                       <li data-action="view-more-events" style="display: none"><strong> <a data-action="view-day-link" href="#" class="aalink day" aria-label="Сегодня суббота 22 февраля" data-year="2025" data-month="2" data-day="22" data-courseid="1" data-categoryid="0" data-timestamp="1740171600"> more </a> </strong></li>
+                       <li data-action="view-more-events" style="display: none"><strong> <a data-action="view-day-link" href="#" class="aalink day" aria-label="События - суббота 22 февраля" data-year="2025" data-month="2" data-day="22" data-courseid="1" data-categoryid="0" data-timestamp="1740171600"> more </a> </strong></li>
                       </ul>
                       <div class="hidden">
                        <div data-popover-eventtype-course="1">
@@ -1458,9 +1458,9 @@ document.body.className += ' jsenabled';
                      </div>
                     </div>
                     <div class="d-md-none hidden-desktop hidden-tablet">
-                     <span class="sr-only">1 событие, суббота 22 февраля</span> <a data-action="view-day-link" href="#" class="day aalink" aria-label="Сегодня суббота 22 февраля" data-year="2025" data-month="2" data-day="22" data-courseid="1" data-categoryid="0" data-timestamp="1740171600"><span class="day-number-circle"><span class="day-number">22</span></span></a>
+                     <span class="sr-only">1 событие, суббота 22 февраля</span> <a data-action="view-day-link" href="#" class="day aalink" aria-label="События - суббота 22 февраля" data-year="2025" data-month="2" data-day="22" data-courseid="1" data-categoryid="0" data-timestamp="1740171600"><span class="day-number-circle"><span class="day-number">22</span></span></a>
                     </div></td>
-                   <td class="day text-sm-center text-md-left weekend clickable" data-day="23" data-day-timestamp="1740258000" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1740315972">
+                   <td class="day text-sm-center text-md-left weekend clickable" data-day="23" data-day-timestamp="1740258000" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1740311550">
                     <div class="d-none d-md-block hidden-phone text-xs-center">
                      <span class="sr-only">Нет событий, воскресенье 23 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">23</span></span></span>
                     </div>
@@ -1469,35 +1469,35 @@ document.body.className += ' jsenabled';
                     </div></td>
                   </tr>
                   <tr data-region="month-view-week">
-                   <td class="day text-sm-center text-md-left clickable" data-day="24" data-day-timestamp="1740344400" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1740402372">
+                   <td class="day text-sm-center text-md-left today clickable" data-day="24" data-day-timestamp="1740344400" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1740397950" title="Сегодня">
                     <div class="d-none d-md-block hidden-phone text-xs-center">
                      <span class="sr-only">Нет событий, понедельник 24 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">24</span></span></span>
                     </div>
                     <div class="d-md-none hidden-desktop hidden-tablet">
                      <span class="sr-only">Нет событий, понедельник 24 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">24</span></span></span>
                     </div></td>
-                   <td class="day text-sm-center text-md-left clickable" data-day="25" data-day-timestamp="1740430800" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1740488772">
+                   <td class="day text-sm-center text-md-left clickable" data-day="25" data-day-timestamp="1740430800" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1740484350">
                     <div class="d-none d-md-block hidden-phone text-xs-center">
                      <span class="sr-only">Нет событий, вторник 25 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">25</span></span></span>
                     </div>
                     <div class="d-md-none hidden-desktop hidden-tablet">
                      <span class="sr-only">Нет событий, вторник 25 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">25</span></span></span>
                     </div></td>
-                   <td class="day text-sm-center text-md-left clickable" data-day="26" data-day-timestamp="1740517200" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1740575172">
+                   <td class="day text-sm-center text-md-left clickable" data-day="26" data-day-timestamp="1740517200" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1740570750">
                     <div class="d-none d-md-block hidden-phone text-xs-center">
                      <span class="sr-only">Нет событий, среда 26 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">26</span></span></span>
                     </div>
                     <div class="d-md-none hidden-desktop hidden-tablet">
                      <span class="sr-only">Нет событий, среда 26 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">26</span></span></span>
                     </div></td>
-                   <td class="day text-sm-center text-md-left clickable" data-day="27" data-day-timestamp="1740603600" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1740661572">
+                   <td class="day text-sm-center text-md-left clickable" data-day="27" data-day-timestamp="1740603600" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1740657150">
                     <div class="d-none d-md-block hidden-phone text-xs-center">
                      <span class="sr-only">Нет событий, четверг 27 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">27</span></span></span>
                     </div>
                     <div class="d-md-none hidden-desktop hidden-tablet">
                      <span class="sr-only">Нет событий, четверг 27 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">27</span></span></span>
                     </div></td>
-                   <td class="day text-sm-center text-md-left clickable" data-day="28" data-day-timestamp="1740690000" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1740747972">
+                   <td class="day text-sm-center text-md-left clickable" data-day="28" data-day-timestamp="1740690000" data-drop-zone="month-view-day" data-region="day" data-new-event-timestamp="1740743550">
                     <div class="d-none d-md-block hidden-phone text-xs-center">
                      <span class="sr-only">Нет событий, пятница 28 февраля</span> <span aria-hidden="true"><span class="day-number-circle"><span class="day-number">28</span></span></span>
                     </div>
@@ -1514,7 +1514,7 @@ document.body.className += ' jsenabled';
              </div>
              <div class="footer">
               <div class="bottom">
-               <span class="footer-link"> <a href="https://lms.sfedu.ru/calendar/view.php?view=month&amp;time=1740229572">Весь календарь</a> </span> <span class="footer-link"> <a href="https://lms.sfedu.ru/calendar/managesubscriptions.php">Импорт или экспорт календарей</a> </span>
+               <span class="footer-link"> <a href="https://lms.sfedu.ru/calendar/view.php?view=month&amp;time=1740397950">Весь календарь</a> </span> <span class="footer-link"> <a href="https://lms.sfedu.ru/calendar/managesubscriptions.php">Импорт или экспорт календарей</a> </span>
               </div>
              </div>
             </div>
@@ -1539,7 +1539,7 @@ document.body.className += ' jsenabled';
       <div class="footer-section p-3 border-bottom">
        <div class="logininfo">
         <div class="logininfo">
-         Вы зашли под именем <a href="https://lms.sfedu.ru/user/profile.php?id=8360" title="Просмотр профиля">Никитин Никита Сергеевич</a> (<a href="https://lms.sfedu.ru/login/logout.php?sesskey=ucD7YI1dXT">Выход</a>)
+         Вы зашли под именем <a href="https://lms.sfedu.ru/user/profile.php?id=8360" title="Просмотр профиля">Никитин Никита Сергеевич</a> (<a href="https://lms.sfedu.ru/login/logout.php?sesskey=kcZca4AtVK">Выход</a>)
         </div>
        </div>
        <div class="tool_usertours-resettourcontainer">
@@ -1600,14 +1600,14 @@ function(
     $,
     Main
 ) {
-    var root = $('#block-recentlyaccesseditems-67b9cbc43302f67b9cbc4330331');
+    var root = $('#block-recentlyaccesseditems-67bc5d7de579267bc5d7de57951');
 
     Main.init(root);
 });
 ;
 M.util.js_pending('tool_usertours/usertours'); require(['tool_usertours/usertours'], function(amd) {amd.init([{"tourId":"8","startTour":false,"filtervalues":{"cssselector":{}}}], ["cssselector"]); M.util.js_complete('tool_usertours/usertours');});;
-M.util.js_pending('block_course_overview_campus/hidecourse'); require(['block_course_overview_campus/hidecourse'], function(amd) {amd.initHideCourse({"local_boostcoc":false,"courses":"1335 2169 1858 1791 1519 1129 1325 2315 2601 2314 2600 2613 2328 1916 1347 1175 1178 2244 1806 2132 2346 1884 1326 1184 1634 1593 2018 1810 1692 1538 1327 1881 1145 1328 1118 1366 2659 2879 1180 1554 2067 2711 1381 1616 2293 2381 1155 1553 1816","manage":0}); M.util.js_complete('block_course_overview_campus/hidecourse');});;
-M.util.js_pending('block_course_overview_campus/filter'); require(['block_course_overview_campus/filter'], function(amd) {amd.initFilter({"local_boostcoc":false,"initialsettings":{"term":"2024-2","teacher":"","category":"","toplevelcategory":""}}); M.util.js_complete('block_course_overview_campus/filter');});;
+M.util.js_pending('block_course_overview_campus/hidecourse'); require(['block_course_overview_campus/hidecourse'], function(amd) {amd.initHideCourse({"local_boostcoc":false,"courses":"1335 1858 2169 1791 1519 1129 1325 2314 2600 2315 2601 2613 2328 1916 1347 1175 1178 1806 2244 2132 2346 1884 1326 1184 1634 1593 2018 1810 1692 1327 1538 1881 1145 1328 1118 1366 2659 2879 1180 1554 2067 2711 1381 1616 2293 2381 1155 1553 1816","manage":0}); M.util.js_complete('block_course_overview_campus/hidecourse');});;
+M.util.js_pending('block_course_overview_campus/filter'); require(['block_course_overview_campus/filter'], function(amd) {amd.initFilter({"local_boostcoc":false,"initialsettings":{"term":"2025-1","teacher":"","category":"","toplevelcategory":""}}); M.util.js_complete('block_course_overview_campus/filter');});;
 
 require(
 [
@@ -1618,14 +1618,14 @@ function(
     $,
     Main
 ) {
-    var root = $('#block-timeline-67b9cbc45b7ab67b9cbc4330332-1');
+    var root = $('#block-timeline-67bc5d7e13a9467bc5d7de57952-1');
     Main.init(root);
 });
 ;
 M.util.js_pending('filter_syntaxhighlighter/hljs'); require(['filter_syntaxhighlighter/hljs'], function(amd) {amd.initHighlighting(); M.util.js_complete('filter_syntaxhighlighter/hljs');});;
 
 require(['jquery', 'core_calendar/month_navigation_drag_drop'], function($, DragDrop) {
-    var root = $('#month-navigation-67b9cbc482bb667b9cbc4330333-1');
+    var root = $('#month-navigation-67bc5d7e390a967bc5d7de57953-1');
     DragDrop.init(root);
 });
 ;
@@ -1637,19 +1637,19 @@ require([
     $,
     DragDrop
 ) {
-    var root = $('#month-detailed-67b9cbc482bb667b9cbc4330333-1');
+    var root = $('#month-detailed-67bc5d7e390a967bc5d7de57953-1');
     DragDrop.init(root);
 });
 ;
 
 require(['jquery', 'core_calendar/calendar', 'core_calendar/popover'], function($, Calendar, calendarPopover) {
-    Calendar.init($("#calendar-month-67b9cbc482bb667b9cbc4330333-1"));
+    Calendar.init($("#calendar-month-67bc5d7e390a967bc5d7de57953-1"));
 });
 ;
 M.util.js_pending('core_calendar/popover'); require(['core_calendar/popover'], function(amd) {M.util.js_complete('core_calendar/popover');});;
 
     require(['core/moremenu'], function(moremenu) {
-        moremenu(document.querySelector('#moremenu-67b9cbc43b103-navbar-nav'));
+        moremenu(document.querySelector('#moremenu-67bc5d7decc82-navbar-nav'));
     });
 ;
 
@@ -1670,7 +1670,7 @@ function(
     $,
     Popover
 ) {
-    var toggle = $('#message-drawer-toggle-67b9cbc4886c667b9cbc4330336');
+    var toggle = $('#message-drawer-toggle-67bc5d7e3e3ed67bc5d7de57956');
     Popover.init(toggle);
 });
 ;
@@ -1681,7 +1681,7 @@ function(
 ;
 
 require(['core/edit_switch'], function(editSwitch) {
-    editSwitch.init('67b9cbc4894f067b9cbc4330337-editingswitch');
+    editSwitch.init('67bc5d7e3f22a67bc5d7de57957-editingswitch');
 });
 ;
 
@@ -1697,8 +1697,8 @@ require(['theme_boost/footer-popover'], function(FooterPopover) {
 ;
 
 require(['jquery', 'core_message/message_drawer'], function($, MessageDrawer) {
-    var root = $('#message-drawer-67b9cbc48b6b167b9cbc4330338');
-    MessageDrawer.init(root, '67b9cbc48b6b167b9cbc4330338', false);
+    var root = $('#message-drawer-67bc5d7e415a167bc5d7de57958');
+    MessageDrawer.init(root, '67bc5d7e415a167bc5d7de57958', false);
 });
 ;
 
@@ -1726,7 +1726,7 @@ M.str = {"moodle":{"lastmodified":"\u041f\u043e\u0441\u043b\u0435\u0434\u043d\u0
 (function() {Y.use("moodle-filter_mathjaxloader-loader",function() {M.filter_mathjaxloader.configure({"mathjaxconfig":"\nMathJax.Hub.Config({\n    config: [\"Accessible.js\", \"Safe.js\"],\n    errorSettings: { message: [\"!\"] },\n    skipStartupTypeset: true,\n    messageStyle: \"none\"\n});\n","lang":"ru"});
 });
 M.util.help_popups.setup(Y);
- M.util.js_pending('random67b9cbc4330339'); Y.on('domready', function() { M.util.js_complete("init");  M.util.js_complete('random67b9cbc4330339'); });
+ M.util.js_pending('random67bc5d7de57959'); Y.on('domready', function() { M.util.js_complete("init");  M.util.js_complete('random67bc5d7de57959'); });
 })();
 //]]>
 </script>
@@ -1743,8 +1743,8 @@ M.util.help_popups.setup(Y);
      </div>
     </footer>
    </div>
-   <div id="drawer-67b9cbc48b6b167b9cbc4330338" class=" drawer bg-white hidden" aria-expanded="false" aria-hidden="true" data-region="right-hand-drawer" role="region" tabindex="0">
-    <div id="message-drawer-67b9cbc48b6b167b9cbc4330338" class="message-app" data-region="message-drawer" role="region">
+   <div id="drawer-67bc5d7e415a167bc5d7de57958" class=" drawer bg-white hidden" aria-expanded="false" aria-hidden="true" data-region="right-hand-drawer" role="region" tabindex="0">
+    <div id="message-drawer-67bc5d7e415a167bc5d7de57958" class="message-app" data-region="message-drawer" role="region">
      <div class="closewidget text-right pr-2">
       <a class="text-dark btn-link" data-action="closedrawer" href="#" title="Закрыть" aria-label="Закрыть"> <i class="icon fa fa-window-close fa-fw " aria-hidden="true"></i> </a>
      </div>
@@ -1848,12 +1848,12 @@ M.util.help_popups.setup(Y);
        <div class="d-flex flex-column h-100">
         <div class="p-3 border-bottom">
          <ul class="nav nav-pills nav-fill" role="tablist">
-          <li class="nav-item"><a id="contacts-tab-67b9cbc48b6b167b9cbc4330338" class="nav-link active" href="#contacts-tab-panel-67b9cbc48b6b167b9cbc4330338" data-toggle="tab" data-action="show-contacts-section" role="tab" aria-controls="contacts-tab-panel-67b9cbc48b6b167b9cbc4330338" aria-selected="true"> Собеседники </a></li>
-          <li class="nav-item"><a id="requests-tab-67b9cbc48b6b167b9cbc4330338" class="nav-link" href="#requests-tab-panel-67b9cbc48b6b167b9cbc4330338" data-toggle="tab" data-action="show-requests-section" role="tab" aria-controls="requests-tab-panel-67b9cbc48b6b167b9cbc4330338" aria-selected="false"> Запросы <span class="badge badge-primary bg-primary ml-2 hidden" data-region="contact-request-count"> <span aria-hidden="true">0</span> <span class="sr-only">Ожидающих запросов на добавление в собеседники: 0</span> </span> </a></li>
+          <li class="nav-item"><a id="contacts-tab-67bc5d7e415a167bc5d7de57958" class="nav-link active" href="#contacts-tab-panel-67bc5d7e415a167bc5d7de57958" data-toggle="tab" data-action="show-contacts-section" role="tab" aria-controls="contacts-tab-panel-67bc5d7e415a167bc5d7de57958" aria-selected="true"> Собеседники </a></li>
+          <li class="nav-item"><a id="requests-tab-67bc5d7e415a167bc5d7de57958" class="nav-link" href="#requests-tab-panel-67bc5d7e415a167bc5d7de57958" data-toggle="tab" data-action="show-requests-section" role="tab" aria-controls="requests-tab-panel-67bc5d7e415a167bc5d7de57958" aria-selected="false"> Запросы <span class="badge badge-primary bg-primary ml-2 hidden" data-region="contact-request-count"> <span aria-hidden="true">0</span> <span class="sr-only">Ожидающих запросов на добавление в собеседники: 0</span> </span> </a></li>
          </ul>
         </div>
         <div class="tab-content d-flex flex-column h-100">
-         <div class="tab-pane fade show active h-100 lazy-load-list" aria-live="polite" data-region="lazy-load-list" data-user-id="8360" id="contacts-tab-panel-67b9cbc48b6b167b9cbc4330338" data-section="contacts" role="tabpanel" aria-labelledby="contacts-tab-67b9cbc48b6b167b9cbc4330338">
+         <div class="tab-pane fade show active h-100 lazy-load-list" aria-live="polite" data-region="lazy-load-list" data-user-id="8360" id="contacts-tab-panel-67bc5d7e415a167bc5d7de57958" data-section="contacts" role="tabpanel" aria-labelledby="contacts-tab-67bc5d7e415a167bc5d7de57958">
           <div class="hidden text-center p-2" data-region="empty-message-container">
            Нет контактов
           </div>
@@ -1865,7 +1865,7 @@ M.util.help_popups.setup(Y);
            <span class="loading-icon icon-no-margin"><i class="icon fa fa-circle-o-notch fa-spin fa-fw " title="Загрузка" role="img" aria-label="Загрузка"></i></span>
           </div>
          </div>
-         <div class="tab-pane fade h-100 lazy-load-list" aria-live="polite" data-region="lazy-load-list" data-user-id="8360" id="requests-tab-panel-67b9cbc48b6b167b9cbc4330338" data-section="requests" role="tabpanel" aria-labelledby="requests-tab-67b9cbc48b6b167b9cbc4330338">
+         <div class="tab-pane fade h-100 lazy-load-list" aria-live="polite" data-region="lazy-load-list" data-user-id="8360" id="requests-tab-panel-67bc5d7e415a167bc5d7de57958" data-section="requests" role="tabpanel" aria-labelledby="requests-tab-67bc5d7e415a167bc5d7de57958">
           <div class="hidden text-center p-2" data-region="empty-message-container">
            Нет запросов на добавление в собеседники
           </div>
@@ -1880,7 +1880,7 @@ M.util.help_popups.setup(Y);
         </div>
        </div>
       </div>
-      <div class="view-conversation hidden h-100" aria-hidden="true" data-region="view-conversation" data-user-id="8360" data-midnight="1740171600" data-message-poll-min="10" data-message-poll-max="120" data-message-poll-after-max="300" style="overflow-y: auto; overflow-x: hidden">
+      <div class="view-conversation hidden h-100" aria-hidden="true" data-region="view-conversation" data-user-id="8360" data-midnight="1740344400" data-message-poll-min="10" data-message-poll-max="120" data-message-poll-after-max="300" style="overflow-y: auto; overflow-x: hidden">
        <div class="position-relative h-100" data-region="content-container" style="overflow-y: auto; overflow-x: hidden">
         <div class="content-message-container hidden h-100 px-2 pt-0" data-region="content-message-container" role="log" style="overflow-y: auto; overflow-x: hidden">
          <div class="py-3 sticky-top z-index-1 border-bottom text-center hidden" data-region="contact-request-sent-message-container">
@@ -2161,12 +2161,12 @@ M.util.help_popups.setup(Y);
        <div class="pt-3 h-100 d-flex flex-column" data-region="group-info-content-container" style="overflow-y: auto"></div>
       </div>
       <div class="h-100 view-overview-body" aria-hidden="false" data-region="view-overview" data-user-id="8360">
-       <div id="message-drawer-view-overview-container-67b9cbc48b6b167b9cbc4330338" class="d-flex flex-column h-100" style="overflow-y: auto">
+       <div id="message-drawer-view-overview-container-67bc5d7e415a167bc5d7de57958" class="d-flex flex-column h-100" style="overflow-y: auto">
         <div class="section border-0 card rounded-0" data-region="view-overview-favourites">
          <div id="view-overview-favourites-toggle" class="card-header rounded-0" data-region="toggle">
-          <button class="btn btn-link w-100 text-left p-1 p-sm-2 d-flex rounded-0 align-items-center overview-section-toggle collapsed" data-toggle="collapse" data-target="#view-overview-favourites-target-67b9cbc48b6b167b9cbc4330338" aria-expanded="false" aria-controls="view-overview-favourites-target-67b9cbc48b6b167b9cbc4330338"><span class="collapsed-icon-container"> <i class="icon fa fa-caret-right fa-fw " aria-hidden="true"></i> </span> <span class="expanded-icon-container"> <i class="icon fa fa-caret-down fa-fw " aria-hidden="true"></i> </span> <span class="font-weight-bold">Помеченные</span> <small class="hidden ml-1" data-region="section-total-count-container"> (<span aria-hidden="true" data-region="section-total-count"></span><span class="sr-only">Всего бесед: </span>) </small> <span class="hidden ml-2" data-region="loading-icon-container"> <span class="loading-icon icon-no-margin"><i class="icon fa fa-circle-o-notch fa-spin fa-fw " title="Загрузка" role="img" aria-label="Загрузка"></i></span> </span> <span class="hidden badge badge-pill badge-primary ml-auto bg-primary" data-region="section-unread-count"> <span aria-hidden="true"></span> <span class="sr-only">Непрочитанных бесед: </span> </span></button>
+          <button class="btn btn-link w-100 text-left p-1 p-sm-2 d-flex rounded-0 align-items-center overview-section-toggle collapsed" data-toggle="collapse" data-target="#view-overview-favourites-target-67bc5d7e415a167bc5d7de57958" aria-expanded="false" aria-controls="view-overview-favourites-target-67bc5d7e415a167bc5d7de57958"><span class="collapsed-icon-container"> <i class="icon fa fa-caret-right fa-fw " aria-hidden="true"></i> </span> <span class="expanded-icon-container"> <i class="icon fa fa-caret-down fa-fw " aria-hidden="true"></i> </span> <span class="font-weight-bold">Помеченные</span> <small class="hidden ml-1" data-region="section-total-count-container"> (<span aria-hidden="true" data-region="section-total-count"></span><span class="sr-only">Всего бесед: </span>) </small> <span class="hidden ml-2" data-region="loading-icon-container"> <span class="loading-icon icon-no-margin"><i class="icon fa fa-circle-o-notch fa-spin fa-fw " title="Загрузка" role="img" aria-label="Загрузка"></i></span> </span> <span class="hidden badge badge-pill badge-primary ml-auto bg-primary" data-region="section-unread-count"> <span aria-hidden="true"></span> <span class="sr-only">Непрочитанных бесед: </span> </span></button>
          </div>
-         <div class="collapse border-bottom  lazy-load-list" aria-live="polite" data-region="lazy-load-list" data-user-id="8360" id="view-overview-favourites-target-67b9cbc48b6b167b9cbc4330338" aria-labelledby="view-overview-favourites-toggle" data-parent="#message-drawer-view-overview-container-67b9cbc48b6b167b9cbc4330338">
+         <div class="collapse border-bottom  lazy-load-list" aria-live="polite" data-region="lazy-load-list" data-user-id="8360" id="view-overview-favourites-target-67bc5d7e415a167bc5d7de57958" aria-labelledby="view-overview-favourites-toggle" data-parent="#message-drawer-view-overview-container-67bc5d7e415a167bc5d7de57958">
           <div class="hidden text-center p-2" data-region="empty-message-container">
            <p class="text-muted mt-2">Нет помеченных бесед</p>
           </div>
@@ -2184,9 +2184,9 @@ M.util.help_popups.setup(Y);
         </div>
         <div class="section border-0 card rounded-0" data-region="view-overview-group-messages">
          <div id="view-overview-group-messages-toggle" class="card-header rounded-0" data-region="toggle">
-          <button class="btn btn-link w-100 text-left p-1 p-sm-2 d-flex rounded-0 align-items-center overview-section-toggle collapsed" data-toggle="collapse" data-target="#view-overview-group-messages-target-67b9cbc48b6b167b9cbc4330338" aria-expanded="false" aria-controls="view-overview-group-messages-target-67b9cbc48b6b167b9cbc4330338"><span class="collapsed-icon-container"> <i class="icon fa fa-caret-right fa-fw " aria-hidden="true"></i> </span> <span class="expanded-icon-container"> <i class="icon fa fa-caret-down fa-fw " aria-hidden="true"></i> </span> <span class="font-weight-bold">Группа</span> <small class="hidden ml-1" data-region="section-total-count-container"> (<span aria-hidden="true" data-region="section-total-count"></span><span class="sr-only">Всего бесед: </span>) </small> <span class="hidden ml-2" data-region="loading-icon-container"> <span class="loading-icon icon-no-margin"><i class="icon fa fa-circle-o-notch fa-spin fa-fw " title="Загрузка" role="img" aria-label="Загрузка"></i></span> </span> <span class="hidden badge badge-pill badge-primary ml-auto bg-primary" data-region="section-unread-count"> <span aria-hidden="true"></span> <span class="sr-only">Непрочитанных бесед: </span> </span></button>
+          <button class="btn btn-link w-100 text-left p-1 p-sm-2 d-flex rounded-0 align-items-center overview-section-toggle collapsed" data-toggle="collapse" data-target="#view-overview-group-messages-target-67bc5d7e415a167bc5d7de57958" aria-expanded="false" aria-controls="view-overview-group-messages-target-67bc5d7e415a167bc5d7de57958"><span class="collapsed-icon-container"> <i class="icon fa fa-caret-right fa-fw " aria-hidden="true"></i> </span> <span class="expanded-icon-container"> <i class="icon fa fa-caret-down fa-fw " aria-hidden="true"></i> </span> <span class="font-weight-bold">Группа</span> <small class="hidden ml-1" data-region="section-total-count-container"> (<span aria-hidden="true" data-region="section-total-count"></span><span class="sr-only">Всего бесед: </span>) </small> <span class="hidden ml-2" data-region="loading-icon-container"> <span class="loading-icon icon-no-margin"><i class="icon fa fa-circle-o-notch fa-spin fa-fw " title="Загрузка" role="img" aria-label="Загрузка"></i></span> </span> <span class="hidden badge badge-pill badge-primary ml-auto bg-primary" data-region="section-unread-count"> <span aria-hidden="true"></span> <span class="sr-only">Непрочитанных бесед: </span> </span></button>
          </div>
-         <div class="collapse border-bottom  lazy-load-list" aria-live="polite" data-region="lazy-load-list" data-user-id="8360" id="view-overview-group-messages-target-67b9cbc48b6b167b9cbc4330338" aria-labelledby="view-overview-group-messages-toggle" data-parent="#message-drawer-view-overview-container-67b9cbc48b6b167b9cbc4330338">
+         <div class="collapse border-bottom  lazy-load-list" aria-live="polite" data-region="lazy-load-list" data-user-id="8360" id="view-overview-group-messages-target-67bc5d7e415a167bc5d7de57958" aria-labelledby="view-overview-group-messages-toggle" data-parent="#message-drawer-view-overview-container-67bc5d7e415a167bc5d7de57958">
           <div class="hidden text-center p-2" data-region="empty-message-container">
            <p class="text-muted mt-2">Нет групповых бесед</p>
           </div>
@@ -2204,9 +2204,9 @@ M.util.help_popups.setup(Y);
         </div>
         <div class="section border-0 card rounded-0" data-region="view-overview-messages">
          <div id="view-overview-messages-toggle" class="card-header rounded-0" data-region="toggle">
-          <button class="btn btn-link w-100 text-left p-1 p-sm-2 d-flex rounded-0 align-items-center overview-section-toggle collapsed" data-toggle="collapse" data-target="#view-overview-messages-target-67b9cbc48b6b167b9cbc4330338" aria-expanded="false" aria-controls="view-overview-messages-target-67b9cbc48b6b167b9cbc4330338"><span class="collapsed-icon-container"> <i class="icon fa fa-caret-right fa-fw " aria-hidden="true"></i> </span> <span class="expanded-icon-container"> <i class="icon fa fa-caret-down fa-fw " aria-hidden="true"></i> </span> <span class="font-weight-bold">Личное</span> <small class="hidden ml-1" data-region="section-total-count-container"> (<span aria-hidden="true" data-region="section-total-count"></span><span class="sr-only">Всего бесед: </span>) </small> <span class="hidden ml-2" data-region="loading-icon-container"> <span class="loading-icon icon-no-margin"><i class="icon fa fa-circle-o-notch fa-spin fa-fw " title="Загрузка" role="img" aria-label="Загрузка"></i></span> </span> <span class="hidden badge badge-pill badge-primary ml-auto bg-primary" data-region="section-unread-count"> <span aria-hidden="true"></span> <span class="sr-only">Непрочитанных бесед: </span> </span></button>
+          <button class="btn btn-link w-100 text-left p-1 p-sm-2 d-flex rounded-0 align-items-center overview-section-toggle collapsed" data-toggle="collapse" data-target="#view-overview-messages-target-67bc5d7e415a167bc5d7de57958" aria-expanded="false" aria-controls="view-overview-messages-target-67bc5d7e415a167bc5d7de57958"><span class="collapsed-icon-container"> <i class="icon fa fa-caret-right fa-fw " aria-hidden="true"></i> </span> <span class="expanded-icon-container"> <i class="icon fa fa-caret-down fa-fw " aria-hidden="true"></i> </span> <span class="font-weight-bold">Личное</span> <small class="hidden ml-1" data-region="section-total-count-container"> (<span aria-hidden="true" data-region="section-total-count"></span><span class="sr-only">Всего бесед: </span>) </small> <span class="hidden ml-2" data-region="loading-icon-container"> <span class="loading-icon icon-no-margin"><i class="icon fa fa-circle-o-notch fa-spin fa-fw " title="Загрузка" role="img" aria-label="Загрузка"></i></span> </span> <span class="hidden badge badge-pill badge-primary ml-auto bg-primary" data-region="section-unread-count"> <span aria-hidden="true"></span> <span class="sr-only">Непрочитанных бесед: </span> </span></button>
          </div>
-         <div class="collapse border-bottom  lazy-load-list" aria-live="polite" data-region="lazy-load-list" data-user-id="8360" id="view-overview-messages-target-67b9cbc48b6b167b9cbc4330338" aria-labelledby="view-overview-messages-toggle" data-parent="#message-drawer-view-overview-container-67b9cbc48b6b167b9cbc4330338">
+         <div class="collapse border-bottom  lazy-load-list" aria-live="polite" data-region="lazy-load-list" data-user-id="8360" id="view-overview-messages-target-67bc5d7e415a167bc5d7de57958" aria-labelledby="view-overview-messages-toggle" data-parent="#message-drawer-view-overview-container-67bc5d7e415a167bc5d7de57958">
           <div class="hidden text-center p-2" data-region="empty-message-container">
            <p class="text-muted mt-2">Нет личных бесед</p>
           </div>
@@ -2268,10 +2268,10 @@ M.util.help_popups.setup(Y);
           <fieldset>
            <legend class="sr-only">Принимать сообщения от:</legend>
            <div class="custom-control custom-radio mb-2">
-            <input type="radio" name="message_blocknoncontacts" class="custom-control-input" id="block-noncontacts-67b9cbc48b6b167b9cbc4330338-1" value="1"> <label class="custom-control-label ml-2" for="block-noncontacts-67b9cbc48b6b167b9cbc4330338-1"> Только мои контакты </label>
+            <input type="radio" name="message_blocknoncontacts" class="custom-control-input" id="block-noncontacts-67bc5d7e415a167bc5d7de57958-1" value="1"> <label class="custom-control-label ml-2" for="block-noncontacts-67bc5d7e415a167bc5d7de57958-1"> Только мои контакты </label>
            </div>
            <div class="custom-control custom-radio mb-2">
-            <input type="radio" name="message_blocknoncontacts" class="custom-control-input" id="block-noncontacts-67b9cbc48b6b167b9cbc4330338-0" value="0"> <label class="custom-control-label ml-2" for="block-noncontacts-67b9cbc48b6b167b9cbc4330338-0"> Мои собеседники и любой в моих курсах </label>
+            <input type="radio" name="message_blocknoncontacts" class="custom-control-input" id="block-noncontacts-67bc5d7e415a167bc5d7de57958-0" value="0"> <label class="custom-control-label ml-2" for="block-noncontacts-67bc5d7e415a167bc5d7de57958-0"> Мои собеседники и любой в моих курсах </label>
            </div>
           </fieldset>
          </div>
@@ -2281,7 +2281,7 @@ M.util.help_popups.setup(Y);
          <h3 class="mb-2 mt-4 h6 font-weight-bold">Основные</h3>
          <div data-preference="entertosend">
           <div class="custom-control custom-switch">
-           <input type="checkbox" class="custom-control-input" id="enter-to-send-67b9cbc48b6b167b9cbc4330338"> <label class="custom-control-label" for="enter-to-send-67b9cbc48b6b167b9cbc4330338"> Использовать Enter для отправки </label>
+           <input type="checkbox" class="custom-control-input" id="enter-to-send-67bc5d7e415a167bc5d7de57958"> <label class="custom-control-label" for="enter-to-send-67bc5d7e415a167bc5d7de57958"> Использовать Enter для отправки </label>
           </div>
          </div>
         </div>
