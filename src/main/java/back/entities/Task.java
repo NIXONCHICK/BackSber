@@ -3,6 +3,7 @@ package back.entities;
 import jakarta.persistence.*;
 import lombok.*;
 import java.util.Date;
+import java.util.List;
 
 @Getter
 @Setter
@@ -22,7 +23,7 @@ public class Task {
   @Column(name = "deadline")
   private Date deadline;
 
-  @Column(name = "description")
+  @Column(name = "description", columnDefinition = "TEXT")
   private String description;
 
   @Column(name = "assignments_url")
@@ -31,4 +32,7 @@ public class Task {
   @ManyToOne
   @JoinColumn(name = "subject_id")
   private Subject subject;
+
+  @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<TaskAttachment> attachments;
 }

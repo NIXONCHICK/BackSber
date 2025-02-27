@@ -9,4 +9,11 @@ import java.io.Serializable;
 public class TaskSubmissionId implements Serializable {
   private Long taskId;
   private Long personId;
+
+  public TaskSubmissionId() {}
+
+  public TaskSubmissionId(Long taskId, Long personId) {
+    this.taskId = taskId;
+    this.personId = personId;
+  }
 }

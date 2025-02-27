@@ -32,12 +32,12 @@ public class TaskSubmission {
   @Column(name = "max_mark")
   private Float maxMark;
 
-  @Column(name = "is_done")
-  private boolean isDone;
-
-  @Column(name = "is_uploaded")
-  private boolean isUploaded;
-
   @Column(name = "submission_date")
   private Date submissionDate;
+
+  @Column(name = "submission_status")
+  private String submissionStatus;
+
+  @Column(name = "grading_status")
+  private String gradingStatus;
 }
