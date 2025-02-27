@@ -26,7 +26,7 @@ public class AuthServiceImpl implements AuthService {
     }
     person = modelMapper.map(loginRequest, Person.class);
     personRepository.save(person);
-    return new LoginResponse(person.getId() ,person.getEmail());
+    return new LoginResponse(person.getId(), person.getEmail(), person.getRole());
   }
 
 }

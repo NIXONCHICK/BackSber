@@ -1,8 +1,7 @@
 package back.dto;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.Size;
+import back.entities.Role;
+import jakarta.validation.constraints.*;
 import lombok.Data;
 
 @Data
@@ -14,4 +13,7 @@ public class LoginRequest {
   @Size(min = 6, message = "Password must be at least 6 characters long")
   @NotEmpty(message = "Password must not be empty")
   private String password;
+
+  @NotNull(message = "Role must not be empty")
+  private Role role;
 }

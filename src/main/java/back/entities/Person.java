@@ -34,7 +34,7 @@ public class Person {
   private String password;
 
   @Column(name = "role")
-  private String role;
+  private Role role;
 
   @ManyToOne
   @JoinColumn(name = "group_id", foreignKey = @ForeignKey(name = "fk_person_student_group"))

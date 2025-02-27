@@ -33,11 +33,7 @@ public class UserParsingService {
   private final TaskSubmissionRepository taskSubmissionRepository;
   private final PageParsingService pageParsingService;
 
-  /**
-   * Вся логика в одной транзакции:
-   *  - Парсим страницы, собираем данные в память.
-   *  - В конце сохраняем все сущности большими партиями (saveAll).
-   */
+
   @Async
   public void parseAndUpdateUser(LoginRequest loginRequest, long personId) {
     // 1) Ищем Person
@@ -47,19 +43,11 @@ public class UserParsingService {
     }
     Person person = personOptional.get();
 
-    // 2) Логинимся через Selenium и получаем MoodleSession
     String moodleSession = SeleniumUtil.loginAndGetMoodleSession(
         loginRequest.getEmail(), loginRequest.getPassword()
     );
-    // Обновляем в памяти, пока не сохраняем
     person.setMoodleSession(moodleSession);
 
-    // ===========================
-    // ЭТАП 1: ПАРСИНГ И СБОР ДАННЫХ
-    // ===========================
-    // Собираем все предметы, их задания, вложения и статусы в *памяти*.
-
-    // --- 2.1. Парсим страницу "My" и собираем ссылки на курсы
     String myUrl = "https://lms.sfedu.ru/my/";
     Document myDoc;
     try {
@@ -70,21 +58,17 @@ public class UserParsingService {
       return;
     }
 
-    // Здесь храним промежуточные данные о предметах, собранные с /my/
-    // Ключ: assignmentsUrl, Значение: объект-обёртка ParsedSubject
     Map<String, ParsedSubject> parsedSubjectsMap = new HashMap<>();
 
-    // Собираем ссылки на курсы
     Elements courseLinks = myDoc.select("a[title][href]:has(span.coc-metainfo)");
     for (Element link : courseLinks) {
-      String href = link.attr("href").trim();   // ссылка на курс
-      String title = link.attr("title").trim(); // название
+      String href = link.attr("href").trim();
+      String title = link.attr("title").trim();
       Element span = link.selectFirst("span.coc-metainfo");
       String semesterText = (span != null) ? span.text().trim() : null;
       LocalDate semesterDate = convertSemesterTextToDate(semesterText);
 
       if (semesterDate == null || href.isEmpty()) {
-        // Если не смогли распарсить семестр или нет ссылки
         continue;
       }
 
@@ -96,17 +80,14 @@ public class UserParsingService {
       parsedSubjectsMap.put(href, parsedSubject);
     }
 
-    // --- 2.2. Для каждого собранного предмета парсим задания
     for (ParsedSubject parsedSubject : parsedSubjectsMap.values()) {
       try {
         Document subjectDoc = pageParsingService.parsePage(parsedSubject.assignmentsUrl, moodleSession);
         System.out.println("Страница предмета \"" + parsedSubject.name + "\" успешно загружена.");
 
-        // Ищем ссылки на задания
         Elements assignmentLinks = subjectDoc.select("a.aalink.stretched-link");
         for (Element assignmentLink : assignmentLinks) {
           String taskHref = assignmentLink.attr("href").trim();
-          // Интересуют только ссылки, начинающиеся на /mod/assign/view.php
           if (!taskHref.startsWith("https://lms.sfedu.ru/mod/assign/view.php")) {
             continue;
           }
@@ -116,7 +97,6 @@ public class UserParsingService {
             taskName = nameElement.text().trim();
           }
 
-          // Сохраняем в parsedSubject.listOfTasks
           ParsedTask parsedTask = new ParsedTask();
           parsedTask.assignmentsUrl = taskHref;
           parsedTask.name = taskName;
@@ -127,15 +107,13 @@ public class UserParsingService {
       }
     }
 
-    // --- 2.3. Парсим детали для каждого задания (дедлайн, описание, вложения, статусы)
-    //         и заполняем submissions для текущего person
+
     for (ParsedSubject parsedSubject : parsedSubjectsMap.values()) {
       for (ParsedTask parsedTask : parsedSubject.tasks) {
         try {
           Document doc = pageParsingService.parsePage(parsedTask.assignmentsUrl, moodleSession);
           System.out.println("Страница задания \"" + parsedTask.name + "\" успешно загружена.");
 
-          // 1) Парсим дедлайн
           Element deadlineDiv = doc.selectFirst("div:has(strong:containsOwn(Срок сдачи))");
           if (deadlineDiv != null) {
             String text = deadlineDiv.text().replace("Срок сдачи:", "").trim();
@@ -145,15 +123,12 @@ public class UserParsingService {
             }
           }
 
-          // 2) Парсим описание и вложения
           Element descriptionBlock = doc.selectFirst("div.box.py-3.generalbox.boxaligncenter");
           if (descriptionBlock != null) {
-            // Описание
             Element noOverflowDiv = descriptionBlock.selectFirst("div.no-overflow");
             if (noOverflowDiv != null) {
               parsedTask.description = noOverflowDiv.text().trim();
             }
-            // Вложения
             Element filesTree = descriptionBlock.selectFirst("div[id^=assign_files_tree]");
             if (filesTree != null) {
               Elements attachmentLinks = filesTree.select("a[target=_blank]");
@@ -174,11 +149,10 @@ public class UserParsingService {
             }
           }
 
-          // 3) Парсим пользовательские данные (submission)
           String submissionStatus = textFromAdjacentTd(doc, "Состояние ответа на задание");
           String gradingStatus   = textFromAdjacentTd(doc, "Состояние оценивания");
           String gradeText       = textFromAdjacentTd(doc, "Оценка");
-          String submissionDateText = textFromAdjacentTd(doc, "Дата отправки");
+          String submissionDateText = textFromAdjacentTd(doc, "Последнее изменение");
 
           LocalDateTime submissionDate = parseDateText(submissionDateText);
           Float[] marks = parseGrade(gradeText);
@@ -193,7 +167,6 @@ public class UserParsingService {
               ? Timestamp.valueOf(submissionDate)
               : null;
 
-          // Связь с конкретным заданием
           parsedTask.submissionForPerson = submission;
 
         } catch (Exception e) {
@@ -202,14 +175,12 @@ public class UserParsingService {
       }
     }
 
-    // --- 2.4. Парсим страницу профиля (ФИО, группа)
     String profileUrl = "https://lms.sfedu.ru/user/profile.php";
     String extractedGroupName = null;
     try {
       Document profileDoc = pageParsingService.parsePage(profileUrl, moodleSession);
       System.out.println("Страница профиля успешно загружена.");
 
-      // ФИО
       Element h1 = profileDoc.selectFirst("h1.h2");
       if (h1 != null) {
         String fullName = h1.text().trim();
@@ -223,7 +194,6 @@ public class UserParsingService {
         }
       }
 
-      // Группа
       Element groupElement = profileDoc.selectFirst("dl:has(dt:containsOwn(Группа)) dd");
       if (groupElement != null) {
         extractedGroupName = groupElement.text().trim();
@@ -232,36 +202,23 @@ public class UserParsingService {
       e.printStackTrace();
     }
 
-    // ===========================
-    // ЭТАП 2: МИНИМУМ ЗАПРОСОВ К БД
-    // ===========================
-    // Собираем всё, что надо сохранить, и делаем "большие" saveAll(...).
 
-    // Список всех ссылок на предметы
     Set<String> subjectUrls = parsedSubjectsMap.keySet();
-    // Выгружаем уже существующие Subject разом
     List<Subject> existingSubjects = subjectRepository.findAllByAssignmentsUrlIn(subjectUrls);
-    // Кладём в map для быстрого поиска
     Map<String, Subject> urlToSubjectMap = new HashMap<>();
     for (Subject subj : existingSubjects) {
       urlToSubjectMap.put(subj.getAssignmentsUrl(), subj);
     }
 
-    // Для enrollments нужно понять, какие Subject привязаны к Person
-    // Сразу выгружаем все его существующие записи Enrollment
     List<Enrollment> existingEnrollments = enrollmentRepository.findAllByPersonId(personId);
-    // Для быстрого поиска делаем set из (personId, subjectId)
     Set<String> existingEnrollmentKeys = new HashSet<>();
     for (Enrollment e : existingEnrollments) {
       existingEnrollmentKeys.add(e.getPerson().getId() + "_" + e.getSubject().getId());
     }
 
-    // Сборник Subject, которые надо сохранить (новые или изменённые)
     List<Subject> subjectsToSave = new ArrayList<>();
-    // Сборник Enrollment, которые надо сохранить
     List<Enrollment> enrollmentsToSave = new ArrayList<>();
 
-    // --- 2.1. Мержим Subject + создаём Enrollment
     for (ParsedSubject parsedSubject : parsedSubjectsMap.values()) {
       Subject subject = urlToSubjectMap.get(parsedSubject.assignmentsUrl);
       if (subject == null) {
@@ -274,20 +231,11 @@ public class UserParsingService {
 
       subjectsToSave.add(subject);
 
-      // Enrollment
-      // Проверяем, нет ли уже связи person-subject
-      // (после сохранения subject получит id, но если он уже в БД, id не null)
-      // Однако, чтобы избежать проблемы с "0" id для новых Subject,
-      // можно сначала сохранить Subject, потом создать Enrollment.
-      // Либо откладываем Enrollment до следующего шага, когда точно будут id.
-
     }
 
-    // Сохраняем все Subject одним махом (если часть из них новые — они получат id)
     subjectRepository.saveAll(subjectsToSave);
     subjectRepository.flush(); // чтобы у новых Subject появились ID
 
-    // Теперь создаём Enrollment для каждого Subject, если не существует
     for (Subject subject : subjectsToSave) {
       String enrollmentKey = person.getId() + "_" + subject.getId();
       if (!existingEnrollmentKeys.contains(enrollmentKey)) {
@@ -298,22 +246,18 @@ public class UserParsingService {
         enrollment.setSubject(subject);
         enrollmentsToSave.add(enrollment);
 
-        existingEnrollmentKeys.add(enrollmentKey); // чтобы не дублировать
+        existingEnrollmentKeys.add(enrollmentKey);
       }
     }
 
-    // Сохраняем все Enrollment
     enrollmentRepository.saveAll(enrollmentsToSave);
 
-    // --- 2.2. Теперь мержим Task и TaskSubmission
-    // Соберём все ссылки на задания
     Set<String> taskUrls = new HashSet<>();
     for (ParsedSubject ps : parsedSubjectsMap.values()) {
       for (ParsedTask pt : ps.tasks) {
         taskUrls.add(pt.assignmentsUrl);
       }
     }
-    // Выгружаем существующие Task
     List<Task> existingTasks = taskRepository.findAllByAssignmentsUrlIn(taskUrls);
     Map<String, Task> urlToTaskMap = new HashMap<>();
     for (Task t : existingTasks) {
@@ -323,12 +267,9 @@ public class UserParsingService {
     List<Task> tasksToSave = new ArrayList<>();
     List<TaskSubmission> submissionsToSave = new ArrayList<>();
 
-    // Пробегаемся по всем ParsedTask
     for (ParsedSubject ps : parsedSubjectsMap.values()) {
-      // Найдём реальный Subject, чтобы привязать Task к нему
       Subject realSubject = urlToSubjectMap.get(ps.assignmentsUrl);
       if (realSubject == null) {
-        // Теоретически не должно случиться, но на всякий случай
         continue;
       }
 
@@ -344,10 +285,6 @@ public class UserParsingService {
         task.setDeadline(pt.deadline);
         task.setDescription(pt.description);
 
-        // Добавляем вложения
-        // Если у вас @OneToMany(cascade = ALL) на attachments,
-        // то можно просто setAttachments(...) и всё сохранится при save(task).
-        // Предварительно почистим, чтобы не было старых лишних данных.
         if (task.getAttachments() == null) {
           task.setAttachments(new ArrayList<>());
         } else {
@@ -364,12 +301,10 @@ public class UserParsingService {
 
         tasksToSave.add(task);
 
-        // TaskSubmission (данные для конкретного пользователя)
         if (pt.submissionForPerson != null) {
           ParsedSubmission sub = pt.submissionForPerson;
 
           TaskSubmissionId tsId = new TaskSubmissionId(task.getId(), person.getId());
-          // Попробуем найти в БД, если уже есть
           TaskSubmission existingSubmission = taskSubmissionRepository.findById(tsId).orElse(null);
           if (existingSubmission == null) {
             existingSubmission = new TaskSubmission();
@@ -388,14 +323,11 @@ public class UserParsingService {
       }
     }
 
-    // Сохраняем все Tasks (с вложениями)
     taskRepository.saveAll(tasksToSave);
-    taskRepository.flush(); // чтобы у новых Task были ID для связки TaskSubmission
+    taskRepository.flush();
 
-    // Сохраняем все TaskSubmission
     taskSubmissionRepository.saveAll(submissionsToSave);
 
-    // --- 2.3. Мержим группу (StudentGroup), если нашли
     if (extractedGroupName != null && !extractedGroupName.isBlank()) {
       StudentGroup group = studentGroupRepository.findByName(extractedGroupName).orElse(null);
       if (group == null) {
@@ -406,15 +338,12 @@ public class UserParsingService {
       person.setGroup(group);
     }
 
-    // --- 2.4. Сохраняем изменения Person (ФИО, moodleSession, group)
     personRepository.save(person);
 
     System.out.println("Все данные успешно собраны и сохранены одним набором запросов!");
   }
 
-  /**
-   * Извлекает текст из TD, который идёт после TH с нужным label.
-   */
+
   private String textFromAdjacentTd(Document doc, String label) {
     Element th = doc.selectFirst("th:containsOwn(" + label + ")");
     if (th != null) {
@@ -426,9 +355,7 @@ public class UserParsingService {
     return "";
   }
 
-  /**
-   * Парсим оценку вида "5,00 / 5,00" (или "4.5 / 5").
-   */
+
   private Float[] parseGrade(String text) {
     if (text == null) return new Float[]{null, null};
     text = text.replace(',', '.').trim();
@@ -446,9 +373,7 @@ public class UserParsingService {
     return new Float[]{null, null};
   }
 
-  /**
-   * Извлекает дату вида "1 сентября 2022, 00:00" (русские месяцы).
-   */
+
   private LocalDateTime parseDateText(String text) {
     if (text == null) return null;
     Pattern pattern = Pattern.compile("(\\d{1,2}\\s+[а-яА-Я]+\\s+\\d{4},\\s+\\d{2}:\\d{2})");
@@ -465,9 +390,7 @@ public class UserParsingService {
     return null;
   }
 
-  /**
-   * Преобразует строку вида "(2025 Осенний семестр)" в LocalDate (для удобства).
-   */
+
   private LocalDate convertSemesterTextToDate(String semesterText) {
     if (semesterText == null || semesterText.isEmpty()) {
       return null;
@@ -491,13 +414,7 @@ public class UserParsingService {
     return null;
   }
 
-  // ======================
-  // Вспомогательные классы для хранения данных в памяти
-  // ======================
 
-  /**
-   * Промежуточная модель "Предмет", спарсенный с /my/.
-   */
   private static class ParsedSubject {
     String assignmentsUrl;
     String name;
@@ -505,9 +422,7 @@ public class UserParsingService {
     List<ParsedTask> tasks = new ArrayList<>();
   }
 
-  /**
-   * Промежуточная модель "Задание".
-   */
+
   private static class ParsedTask {
     String assignmentsUrl;
     String name;
@@ -517,18 +432,14 @@ public class UserParsingService {
     ParsedSubmission submissionForPerson; // Submission для текущего пользователя
   }
 
-  /**
-   * Промежуточная модель "Вложение" (файлы в задании).
-   */
+
   private static class ParsedAttachment {
     String fileUrl;
     String fileName;
     String fileExtension;
   }
 
-  /**
-   * Промежуточная модель "Отправленная работа" (TaskSubmission).
-   */
+
   private static class ParsedSubmission {
     Long personId;
     String submissionStatus;
