@@ -1,6 +1,7 @@
 package back.services;
 
 import back.dto.LoginRequest;
+import back.dto.RegisterRequest;
 import back.entities.*;
 import back.repositories.*;
 import back.util.SeleniumUtil;
@@ -35,8 +36,7 @@ public class UserParsingService {
 
 
   @Async
-  public void parseAndUpdateUser(LoginRequest loginRequest, long personId) {
-    // 1) Ищем Person
+  public void parseAndUpdateUser(RegisterRequest registerRequest, long personId) {
     Optional<Person> personOptional = personRepository.findById(personId);
     if (personOptional.isEmpty()) {
       return;
@@ -44,7 +44,7 @@ public class UserParsingService {
     Person person = personOptional.get();
 
     String moodleSession = SeleniumUtil.loginAndGetMoodleSession(
-        loginRequest.getEmail(), loginRequest.getPassword()
+        registerRequest.getEmail(), registerRequest.getPassword()
     );
     person.setMoodleSession(moodleSession);
 
