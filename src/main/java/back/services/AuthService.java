@@ -46,6 +46,7 @@ public class AuthService {
     
     Map<String, Object> claims = new HashMap<>();
     claims.put("role", person.getRole().name());
+    claims.put("userId", person.getId());
     String token = jwtUtil.generateToken(claims, person);
     
     return new LoginResponse(person.getId(), person.getEmail(), person.getRole(), token);
@@ -66,6 +67,7 @@ public class AuthService {
     
     Map<String, Object> claims = new HashMap<>();
     claims.put("role", person.getRole().name());
+    claims.put("userId", person.getId());
     String token = jwtUtil.generateToken(claims, person);
     
     return new LoginResponse(person.getId(), person.getEmail(), person.getRole(), token);

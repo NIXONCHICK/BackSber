@@ -27,6 +27,13 @@ public class TaskService {
         .map(this::convertToTaskDeadlineResponse)
         .collect(Collectors.toList());
   }
+  
+  public List<TaskDeadlineResponse> getTasksWithDeadlinesForUser(Date date, Long userId) {
+    List<Task> tasks = taskRepository.findTasksWithDeadlinesForUser(date, userId);
+    return tasks.stream()
+        .map(this::convertToTaskDeadlineResponse)
+        .collect(Collectors.toList());
+  }
 
   public Optional<TaskDeadlineResponse> getTaskById(Long id) {
     return taskRepository.findById(id)

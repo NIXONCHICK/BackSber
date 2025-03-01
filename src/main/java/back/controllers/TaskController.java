@@ -2,6 +2,7 @@ package back.controllers;
 
 import back.dto.TaskDeadlineResponse;
 import back.services.TaskService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -24,11 +25,18 @@ public class TaskController {
   @GetMapping("/tasks/deadlines")
   @PreAuthorize("isAuthenticated()")
   public ResponseEntity<List<TaskDeadlineResponse>> getTasksWithDeadlines(
-      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date date) {
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date date,
+      HttpServletRequest request) {
 
+    Long userId = (Long) request.getAttribute("userId");
+    if (userId == null) {
+      return ResponseEntity.badRequest().build();
+    }
+    
     Date effectiveDate = (date != null) ? date : new Date();
-    List<TaskDeadlineResponse> tasks = taskService.getTasksWithDeadlinesOnOrAfterDate(effectiveDate);
+    List<TaskDeadlineResponse> tasks = taskService.getTasksWithDeadlinesForUser(effectiveDate, userId);
     return ResponseEntity.ok(tasks);
   }
+
 
 }

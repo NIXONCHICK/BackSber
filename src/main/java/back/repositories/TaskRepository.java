@@ -14,4 +14,10 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 
   @Query("SELECT t FROM Task t JOIN FETCH t.subject WHERE t.deadline >= :date ORDER BY t.deadline ASC")
   List<Task> findTasksWithDeadlinesOnOrAfterDate(@Param("date") Date date);
+  
+  @Query("SELECT t FROM Task t JOIN FETCH t.subject " +
+         "JOIN StudentTaskAssignment sta ON sta.task = t " +
+         "WHERE t.deadline >= :date AND sta.person.id = :personId " +
+         "ORDER BY t.deadline ASC")
+  List<Task> findTasksWithDeadlinesForUser(@Param("date") Date date, @Param("personId") Long personId);
 }

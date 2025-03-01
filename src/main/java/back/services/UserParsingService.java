@@ -284,6 +284,7 @@ public class UserParsingService {
         task.setSubject(realSubject);
         task.setDeadline(pt.deadline);
         task.setDescription(pt.description);
+        task.setSource(TaskSource.PARSED);
 
         if (task.getAttachments() == null) {
           task.setAttachments(new ArrayList<>());

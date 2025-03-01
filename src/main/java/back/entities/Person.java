@@ -40,7 +40,6 @@ public class Person implements UserDetails {
   private String password;
 
   @Column(name = "role")
-  @Enumerated(EnumType.STRING)
   private Role role;
 
   @ManyToOne

@@ -29,6 +29,9 @@ public class Task {
   @Column(name = "assignments_url")
   private String assignmentsUrl;
 
+  @Column(name = "source")
+  private TaskSource source;
+
   @ManyToOne
   @JoinColumn(name = "subject_id")
   private Subject subject;
