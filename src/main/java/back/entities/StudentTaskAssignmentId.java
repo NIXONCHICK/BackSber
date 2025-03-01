@@ -6,13 +6,13 @@ import java.io.Serializable;
 
 @Data
 @Embeddable
-public class TaskSubmissionId implements Serializable {
+public class StudentTaskAssignmentId implements Serializable {
   private Long taskId;
   private Long personId;
 
-  public TaskSubmissionId() {}
+  public StudentTaskAssignmentId() {}
 
-  public TaskSubmissionId(Long taskId, Long personId) {
+  public StudentTaskAssignmentId(Long taskId, Long personId) {
     this.taskId = taskId;
     this.personId = personId;
   }

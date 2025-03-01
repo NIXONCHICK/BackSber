@@ -31,7 +31,8 @@ public class UserParsingService {
   private final EnrollmentRepository enrollmentRepository;
   private final StudentGroupRepository studentGroupRepository;
   private final TaskRepository taskRepository;
-  private final TaskSubmissionRepository taskSubmissionRepository;
+  private final StudentTaskAssignmentRepository studentTaskAssignmentRepository;
+  private final TaskGradingRepository taskGradingRepository;
   private final PageParsingService pageParsingService;
 
 
@@ -150,8 +151,8 @@ public class UserParsingService {
           }
 
           String submissionStatus = textFromAdjacentTd(doc, "Состояние ответа на задание");
-          String gradingStatus   = textFromAdjacentTd(doc, "Состояние оценивания");
-          String gradeText       = textFromAdjacentTd(doc, "Оценка");
+          String gradingStatus = textFromAdjacentTd(doc, "Состояние оценивания");
+          String gradeText = textFromAdjacentTd(doc, "Оценка");
           String submissionDateText = textFromAdjacentTd(doc, "Последнее изменение");
 
           LocalDateTime submissionDate = parseDateText(submissionDateText);
@@ -230,7 +231,6 @@ public class UserParsingService {
       subject.setSemesterDate(java.sql.Date.valueOf(parsedSubject.semesterDate));
 
       subjectsToSave.add(subject);
-
     }
 
     subjectRepository.saveAll(subjectsToSave);
@@ -265,7 +265,7 @@ public class UserParsingService {
     }
 
     List<Task> tasksToSave = new ArrayList<>();
-    List<TaskSubmission> submissionsToSave = new ArrayList<>();
+    List<StudentTaskAssignment> assignmentsToSave = new ArrayList<>();
 
     for (ParsedSubject ps : parsedSubjectsMap.values()) {
       Subject realSubject = urlToSubjectMap.get(ps.assignmentsUrl);
@@ -300,33 +300,73 @@ public class UserParsingService {
         }
 
         tasksToSave.add(task);
-
-        if (pt.submissionForPerson != null) {
-          ParsedSubmission sub = pt.submissionForPerson;
-
-          TaskSubmissionId tsId = new TaskSubmissionId(task.getId(), person.getId());
-          TaskSubmission existingSubmission = taskSubmissionRepository.findById(tsId).orElse(null);
-          if (existingSubmission == null) {
-            existingSubmission = new TaskSubmission();
-            existingSubmission.setId(tsId);
-            existingSubmission.setTask(task);
-            existingSubmission.setPerson(person);
-          }
-          existingSubmission.setSubmissionStatus(sub.submissionStatus);
-          existingSubmission.setGradingStatus(sub.gradingStatus);
-          existingSubmission.setSubmissionDate(sub.submissionDate);
-          existingSubmission.setMark(sub.mark);
-          existingSubmission.setMaxMark(sub.maxMark);
-
-          submissionsToSave.add(existingSubmission);
-        }
       }
     }
 
     taskRepository.saveAll(tasksToSave);
     taskRepository.flush();
-
-    taskSubmissionRepository.saveAll(submissionsToSave);
+    
+    for (ParsedSubject ps : parsedSubjectsMap.values()) {
+      for (ParsedTask pt : ps.tasks) {
+        Task task = urlToTaskMap.get(pt.assignmentsUrl);
+        if (task == null || task.getId() == null) {
+          continue;
+        }
+        
+        if (pt.submissionForPerson != null) {
+          StudentTaskAssignmentId assignmentId = new StudentTaskAssignmentId(task.getId(), person.getId());
+          StudentTaskAssignment assignment = studentTaskAssignmentRepository.findById(assignmentId).orElse(null);
+          if (assignment == null) {
+            assignment = new StudentTaskAssignment();
+            assignment.setId(assignmentId);
+            assignment.setTask(task);
+            assignment.setPerson(person);
+          }
+          assignmentsToSave.add(assignment);
+        }
+      }
+    }
+    
+    studentTaskAssignmentRepository.saveAll(assignmentsToSave);
+    studentTaskAssignmentRepository.flush();
+    
+    List<TaskGrading> gradingsToSave = new ArrayList<>();
+    
+    for (ParsedSubject ps : parsedSubjectsMap.values()) {
+      for (ParsedTask pt : ps.tasks) {
+        Task task = urlToTaskMap.get(pt.assignmentsUrl);
+        if (task == null || task.getId() == null) {
+          continue;
+        }
+        
+        if (pt.submissionForPerson != null) {
+          ParsedSubmission sub = pt.submissionForPerson;
+          
+          StudentTaskAssignmentId assignmentId = new StudentTaskAssignmentId(task.getId(), person.getId());
+          StudentTaskAssignment assignment = studentTaskAssignmentRepository.findById(assignmentId).orElse(null);
+          
+          if (assignment != null) {
+            // Search for existing grading or create new one
+            TaskGrading grading = taskGradingRepository.findByAssignment(assignment);
+            if (grading == null) {
+              grading = new TaskGrading();
+              grading.setAssignment(assignment);
+            }
+            
+            grading.setSubmissionStatus(sub.submissionStatus);
+            grading.setGradingStatus(sub.gradingStatus);
+            grading.setSubmissionDate(sub.submissionDate);
+            grading.setMark(sub.mark);
+            grading.setMaxMark(sub.maxMark);
+            
+            gradingsToSave.add(grading);
+          }
+        }
+      }
+    }
+    
+    // Save all gradings
+    taskGradingRepository.saveAll(gradingsToSave);
 
     if (extractedGroupName != null && !extractedGroupName.isBlank()) {
       StudentGroup group = studentGroupRepository.findByName(extractedGroupName).orElse(null);

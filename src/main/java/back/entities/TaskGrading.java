@@ -8,23 +8,21 @@ import java.util.Date;
 
 @Data
 @Entity
-@Table(name = "task_submission")
+@Table(name = "task_grading")
 @AllArgsConstructor
 @NoArgsConstructor
-public class TaskSubmission {
+public class TaskGrading {
 
-  @EmbeddedId
-  private TaskSubmissionId id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-  @ManyToOne
-  @MapsId("taskId")
-  @JoinColumn(name = "task_id")
-  private Task task;
-
-  @ManyToOne
-  @MapsId("personId")
-  @JoinColumn(name = "person_id")
-  private Person person;
+  @OneToOne
+  @JoinColumns({
+    @JoinColumn(name = "task_id", referencedColumnName = "task_id"),
+    @JoinColumn(name = "person_id", referencedColumnName = "person_id")
+  })
+  private StudentTaskAssignment assignment;
 
   @Column(name = "mark")
   private Float mark;
