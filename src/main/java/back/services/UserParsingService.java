@@ -114,9 +114,9 @@ public class UserParsingService {
           Document doc = pageParsingService.parsePage(parsedTask.assignmentsUrl, moodleSession);
           System.out.println("Страница задания \"" + parsedTask.name + "\" успешно загружена.");
 
-          Element deadlineDiv = doc.selectFirst("div:has(strong:containsOwn(Срок сдачи))");
+          Element deadlineDiv = doc.select("div.description-inner > div:has(strong:containsOwn(Срок сдачи))").first();
           if (deadlineDiv != null) {
-            String text = deadlineDiv.text().replace("Срок сдачи:", "").trim();
+            String text = deadlineDiv.text();
             LocalDateTime dt = parseDateText(text);
             if (dt != null) {
               parsedTask.deadline = Timestamp.valueOf(dt);

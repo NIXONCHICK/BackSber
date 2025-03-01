@@ -17,7 +17,7 @@ import jakarta.validation.Valid;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api")
-public class PersonController {
+public class PersonAuthController {
 
   private final AuthService authService;
   private final UserParsingService userParsingService;
@@ -64,7 +64,6 @@ public class PersonController {
           .body("{\"message\": \"" + ex.getMessage() + "\"}");
     }
   }
-
 
 
 }
