@@ -9,7 +9,8 @@ import java.util.Date;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class TaskDeadlineResponse {
+public class TaskResponse {
+  private Long taskId;
   private String name;
   private Date deadline;
   private String description;
