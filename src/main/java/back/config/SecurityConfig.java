@@ -1,6 +1,7 @@
 package back.config;
 
 import back.services.CustomUserDetailsService;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -48,7 +49,26 @@ public class SecurityConfig {
             .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
         )
         .authenticationProvider(authenticationProvider())
-        .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+        .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+        .exceptionHandling(ex -> ex
+            .accessDeniedHandler((request, response, accessDeniedException) -> {
+                response.setContentType("application/json;charset=UTF-8");
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                response.getWriter().write(
+                    "{\"error\": \"access_denied\", " +
+                    "\"message\": \"У вас нет прав для выполнения этого действия. " +
+                    "Требуется роль ELDER\"}"
+                );
+            })
+            .authenticationEntryPoint((request, response, authException) -> {
+                response.setContentType("application/json;charset=UTF-8");
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write(
+                    "{\"error\": \"unauthorized\", " +
+                    "\"message\": \"Необходима авторизация\"}"
+                );
+            })
+        );
         
     return http.build();
   }

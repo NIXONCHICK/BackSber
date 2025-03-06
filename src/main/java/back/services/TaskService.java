@@ -2,11 +2,7 @@ package back.services;
 
 import back.dto.TaskRequest;
 import back.dto.TaskResponse;
-import back.entities.Person;
-import back.entities.StudentTaskAssignment;
-import back.entities.StudentTaskAssignmentId;
-import back.entities.Task;
-import back.entities.TaskSource;
+import back.entities.*;
 import back.exceptions.DuplicateTaskException;
 import back.repositories.PersonRepository;
 import back.repositories.StudentTaskAssignmentRepository;
@@ -30,6 +26,7 @@ public class TaskService {
   private final ModelMapper modelMapper;
   private final PersonRepository personRepository;
   private final StudentTaskAssignmentRepository studentTaskAssignmentRepository;
+  private final EmailService emailService;
 
   public List<TaskResponse> getTasksWithDeadlinesForUser(Date date, Long userId) {
     List<Task> tasks = taskRepository.findTasksWithDeadlinesForUser(date, userId);
@@ -43,9 +40,7 @@ public class TaskService {
         .map(this::convertToTaskDeadlineResponse);
   }
 
-  /**
-   * Получение задачи по ID только для конкретного пользователя
-   */
+
   public Optional<TaskResponse> getTaskByIdForUser(Long taskId, Long userId) {
     return taskRepository.findTaskByIdForUser(taskId, userId)
         .map(this::convertToTaskDeadlineResponse);
@@ -89,7 +84,6 @@ public class TaskService {
 
   @Transactional
   public Optional<TaskResponse> updateUserTask(Long taskId, TaskRequest taskRequest, Long userId) {
-    // Проверяем, что задание существует и принадлежит пользователю
     Optional<Task> taskOptional = taskRepository.findTaskByIdForUser(taskId, userId);
     
     if (taskOptional.isEmpty()) {
@@ -98,13 +92,11 @@ public class TaskService {
     
     Task task = taskOptional.get();
     
-    // Проверяем, что задание создано пользователем (источник USER)
     if (task.getSource() != TaskSource.USER) {
       throw new RuntimeException("Можно изменять только задания, созданные пользователем");
     }
     
-    // Проверка на дубликаты (только если изменилось имя или дедлайн)
-    if (!task.getName().equals(taskRequest.getName()) || 
+    if (!task.getName().equals(taskRequest.getName()) ||
         !task.getDeadline().equals(taskRequest.getDeadline())) {
       
       Optional<Task> duplicateTask = taskRepository.findDuplicateUserTask(
@@ -115,18 +107,15 @@ public class TaskService {
           TaskSource.USER
       );
       
-      // Если существует другое задание с такими же параметрами
       if (duplicateTask.isPresent() && !duplicateTask.get().getId().equals(taskId)) {
         throw new DuplicateTaskException("У вас уже существует задание с таким названием и дедлайном");
       }
     }
     
-    // Обновляем поля задания
     task.setName(taskRequest.getName());
     task.setDeadline(taskRequest.getDeadline());
     task.setDescription(taskRequest.getDescription());
     
-    // Сохраняем обновленное задание
     Task updatedTask = taskRepository.save(task);
     
     return Optional.of(convertToTaskDeadlineResponse(updatedTask));
@@ -134,28 +123,158 @@ public class TaskService {
 
   @Transactional
   public boolean deleteUserTask(Long taskId, Long userId) {
-    // Проверяем, что задание существует и принадлежит пользователю
     Optional<Task> taskOptional = taskRepository.findTaskByIdForUser(taskId, userId);
     
     if (taskOptional.isEmpty()) {
       return false;
     }
     
-    // Получаем задание
     Task task = taskOptional.get();
     
-    // Проверяем, что задание создано пользователем (источник USER)
     if (task.getSource() != TaskSource.USER) {
       throw new RuntimeException("Можно удалять только задания, созданные пользователем");
     }
     
-    // Находим соответствующую запись в StudentTaskAssignment
     StudentTaskAssignmentId assignmentId = new StudentTaskAssignmentId(taskId, userId);
     studentTaskAssignmentRepository.deleteById(assignmentId);
     
-    // Удаляем само задание (оно гарантированно с источником USER)
     taskRepository.delete(task);
     
+    return true;
+  }
+
+  @Transactional
+  public TaskResponse createElderTask(TaskRequest taskRequest, Long elderId) {
+    Person elder = personRepository.findById(elderId)
+        .orElseThrow(() -> new RuntimeException("Староста не найден"));
+
+    if (elder.getRole() != Role.ELDER) {
+      throw new RuntimeException("Только староста может создавать задания для группы");
+    }
+
+    StudentGroup group = elder.getGroup();
+    if (group == null) {
+      throw new RuntimeException("Староста не привязан к группе");
+    }
+
+    Optional<Task> duplicateTask = taskRepository.findDuplicateElderTask(
+        taskRequest.getName(),
+        taskRequest.getDeadline(),
+        taskRequest.getDescription(),
+        group.getId(),
+        TaskSource.ELDER
+    );
+    
+    if (duplicateTask.isPresent()) {
+        throw new DuplicateTaskException("В вашей группе уже существует задание с таким названием и дедлайном");
+    }
+
+    Task task = new Task();
+    task.setName(taskRequest.getName());
+    task.setDeadline(taskRequest.getDeadline());
+    task.setDescription(taskRequest.getDescription());
+    task.setSource(TaskSource.ELDER);
+
+    Task savedTask = taskRepository.save(task);
+
+    List<Person> groupStudents = personRepository.findAllByGroup(group);
+
+    for (Person student : groupStudents) {
+      StudentTaskAssignmentId assignmentId = new StudentTaskAssignmentId(savedTask.getId(), student.getId());
+      StudentTaskAssignment assignment = new StudentTaskAssignment();
+      assignment.setId(assignmentId);
+      assignment.setTask(savedTask);
+      assignment.setPerson(student);
+      studentTaskAssignmentRepository.save(assignment);
+
+      emailService.sendTaskNotification(
+          student.getEmail(),
+          savedTask.getName(),
+          savedTask.getDescription(),
+          savedTask.getDeadline(),
+          group.getName(),
+          student.getId().equals(elderId)
+      );
+    }
+
+    return convertToTaskDeadlineResponse(savedTask);
+  }
+
+  @Transactional
+  public Optional<TaskResponse> updateElderTask(Long taskId, TaskRequest taskRequest, Long elderId) {
+    Person elder = personRepository.findById(elderId)
+        .orElseThrow(() -> new RuntimeException("Староста не найден"));
+
+    if (elder.getRole() != Role.ELDER) {
+      throw new RuntimeException("Только староста может обновлять задания группы");
+    }
+
+    Optional<Task> taskOptional = taskRepository.findById(taskId);
+    if (taskOptional.isEmpty()) {
+      return Optional.empty();
+    }
+
+    Task task = taskOptional.get();
+    if (task.getSource() != TaskSource.ELDER) {
+      throw new RuntimeException("Можно редактировать только задания, созданные старостой");
+    }
+
+    List<StudentTaskAssignment> assignments = studentTaskAssignmentRepository.findAllByTaskId(taskId);
+    if (assignments.isEmpty() || assignments.get(0).getPerson().getGroup().getId() != elder.getGroup().getId()) {
+      throw new RuntimeException("Староста может редактировать только задания своей группы");
+    }
+
+    if (!task.getName().equals(taskRequest.getName()) ||
+        !task.getDeadline().equals(taskRequest.getDeadline())) {
+      
+      Optional<Task> duplicateTask = taskRepository.findDuplicateElderTask(
+          taskRequest.getName(),
+          taskRequest.getDeadline(),
+          taskRequest.getDescription(),
+          elder.getGroup().getId(),
+          TaskSource.ELDER
+      );
+      
+      if (duplicateTask.isPresent() && !duplicateTask.get().getId().equals(taskId)) {
+        throw new DuplicateTaskException("В вашей группе уже существует задание с таким названием и дедлайном");
+      }
+    }
+
+    task.setName(taskRequest.getName());
+    task.setDeadline(taskRequest.getDeadline());
+    task.setDescription(taskRequest.getDescription());
+
+    Task updatedTask = taskRepository.save(task);
+    return Optional.of(convertToTaskDeadlineResponse(updatedTask));
+  }
+
+  @Transactional
+  public boolean deleteElderTask(Long taskId, Long elderId) {
+    Person elder = personRepository.findById(elderId)
+        .orElseThrow(() -> new RuntimeException("Староста не найден"));
+
+    if (elder.getRole() != Role.ELDER) {
+      throw new RuntimeException("Только староста может удалять задания группы");
+    }
+
+    Optional<Task> taskOptional = taskRepository.findById(taskId);
+    if (taskOptional.isEmpty()) {
+      return false;
+    }
+
+    Task task = taskOptional.get();
+    if (task.getSource() != TaskSource.ELDER) {
+      throw new RuntimeException("Можно удалять только задания, созданные старостой");
+    }
+
+    List<StudentTaskAssignment> assignments = studentTaskAssignmentRepository.findAllByTaskId(taskId);
+    if (assignments.isEmpty() || assignments.get(0).getPerson().getGroup().getId() != elder.getGroup().getId()) {
+      throw new RuntimeException("Староста может удалять только задания своей группы");
+    }
+
+    studentTaskAssignmentRepository.deleteAllByTaskId(taskId);
+    taskRepository.delete(task);
+
     return true;
   }
 

@@ -45,4 +45,19 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
   Optional<Task> findTaskByIdForUser(
       @Param("taskId") Long taskId,
       @Param("personId") Long personId);
+
+  @Query("SELECT DISTINCT t FROM Task t " +
+      "JOIN StudentTaskAssignment sta ON sta.task = t " +
+      "JOIN Person p ON sta.person = p " +
+      "WHERE t.name = :name " +
+      "AND t.deadline = :deadline " +
+      "AND ((:description IS NULL AND t.description IS NULL) OR (:description IS NOT NULL AND t.description = :description)) " +
+      "AND p.group.id = :groupId " +
+      "AND t.source = :source")
+  Optional<Task> findDuplicateElderTask(
+      @Param("name") String name, 
+      @Param("deadline") Date deadline, 
+      @Param("description") String description, 
+      @Param("groupId") Long groupId,
+      @Param("source") TaskSource source);
 }

@@ -1,6 +1,5 @@
 package back.services;
 
-import back.dto.LoginRequest;
 import back.dto.RegisterRequest;
 import back.entities.*;
 import back.repositories.*;
@@ -470,7 +469,7 @@ public class UserParsingService {
     Timestamp deadline;
     String description;
     List<ParsedAttachment> attachments = new ArrayList<>();
-    ParsedSubmission submissionForPerson; // Submission для текущего пользователя
+    ParsedSubmission submissionForPerson;
   }
 
 
