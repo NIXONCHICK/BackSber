@@ -40,6 +40,9 @@ dependencies {
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     runtimeOnly 'org.postgresql:postgresql'
     annotationProcessor 'org.projectlombok:lombok'
+    implementation 'org.apache.tika:tika-core:3.1.0'
+    implementation 'org.apache.tika:tika-parsers-standard-package:3.1.0'
+    implementation 'ai.djl.huggingface:tokenizers:0.32.0'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }

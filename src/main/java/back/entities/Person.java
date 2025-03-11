@@ -10,6 +10,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.sql.Timestamp;
 
 @Getter
 @Setter
@@ -49,7 +50,7 @@ public class Person implements UserDetails {
 
   @Column(name = "moodle_session")
   private String moodleSession;
-  
+
   @Column(name = "account_non_expired")
   private boolean accountNonExpired = true;
   
