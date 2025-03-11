@@ -10,9 +10,10 @@ import back.util.SeleniumUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,8 +21,6 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -116,8 +115,7 @@ public class MoodleAssignmentService {
 
             log.info("Анализ задания завершен, найдено {} токенов", totalTokens);
             return result;
-        } catch (Exception e) {
-            log.error("Ошибка при анализе задания: {}", e.getMessage(), e);
+        } catch (Exception e) {log.error("Ошибка при анализе задания: {}", e.getMessage(), e);
             throw new RuntimeException("Не удалось проанализировать задание: " + e.getMessage(), e);
         }
     }
@@ -161,17 +159,84 @@ public class MoodleAssignmentService {
 
 
     private File downloadFile(String fileUrl, String moodleSession) throws IOException {
+        boolean retryWithNewSession = false;
+        IOException lastException = null;
+
         try {
-            String cleanUrl = fileUrl;
-            if (fileUrl.contains("?")) {
-                cleanUrl = fileUrl.substring(0, fileUrl.indexOf("?"));
+            return downloadFileWithSession(fileUrl, moodleSession);
+        } catch (IOException e) {
+            // Проверяем, связана ли ошибка с перенаправлениями
+            if (e.getMessage().contains("redirected too many") ||
+                e.getMessage().contains("код: 30") ||
+                e.getMessage().contains("код: 40")) {
+
+                log.warn("Возникла ошибка при скачивании файла с текущей сессией: {}", e.getMessage());
+                retryWithNewSession = true;
+                lastException = e;
+            } else {
+                throw e;
             }
+        }
+
+        // Если требуется повторная попытка с новой сессией
+        if (retryWithNewSession) {
+            log.info("Пробуем скачать файл с новой сессией после ошибки: {}", lastException.getMessage());
+            // Получаем текущего пользователя
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getPrincipal() instanceof UserDetails) {
+                UserDetails userDetails = (UserDetails) auth.getPrincipal();
+                Person person = personRepository.findByEmail(userDetails.getUsername());
+
+                if (person == null) {
+                    throw new RuntimeException("Пользователь не найден");
+                }
+
+                // Принудительно получаем новую сессию
+                String newSession = null;
+                try {
+                    log.info("Принудительно запрашиваем новую сессию для пользователя {}", person.getEmail());
+                    newSession = SeleniumUtil.loginAndGetMoodleSession(person.getEmail(), person.getPassword());
+
+                    if (newSession != null) {
+                        log.info("Получена новая сессия, сохраняем и повторяем запрос");
+                        person.setMoodleSession(newSession);
+                        // Сохраняем без установки срока действия сессии, так как поле не используется
+                        personRepository.save(person);
+
+                        // Повторяем запрос с новой сессией
+                        return downloadFileWithSession(fileUrl, newSession);
+                    }
+                } catch (Exception seleniumEx) {
+                    log.error("Не удалось получить новую сессию: {}", seleniumEx.getMessage());
+                    throw new IOException("Не удалось скачать файл после попытки обновления сессии", lastException);
+                }
+            }
+
+            throw new IOException("Не удалось скачать файл и не удалось обновить сессию", lastException);
+        }
+
+        // Этот код не должен быть достижим
+        throw new IOException("Неизвестная ошибка при скачивании файла");
+    }
+
+    /**
+     * Скачивает файл, используя указанную сессию Moodle
+     */
+    private File downloadFileWithSession(String fileUrl, String moodleSession) throws IOException {
+        try {
+            // Удаляем параметры из URL для имени файла
+            String cleanUrl = fileUrl.contains("?")
+                    ? fileUrl.substring(0, fileUrl.indexOf("?"))
+                    : fileUrl;
 
             URL url = new URL(fileUrl);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setRequestProperty("Cookie", "MoodleSession=" + moodleSession);
             conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
+            // Устанавливаем тайм-аут соединения
+            conn.setConnectTimeout(15000);
+            conn.setReadTimeout(15000);
 
             int responseCode = conn.getResponseCode();
             if (responseCode != 200) {
@@ -197,7 +262,7 @@ public class MoodleAssignmentService {
             log.info("Файл успешно скачан: {}, размер: {} байт", fileName, tempFile.length());
             return tempFile;
         } catch (Exception e) {
-            log.error("Ошибка при скачивании файла {}: {}", fileUrl, e.getMessage(), e);
+            log.error("Ошибка при скачивании файла {}: {}", fileUrl, e.getMessage());
             throw new IOException("Не удалось скачать файл: " + e.getMessage(), e);
         }
     }
