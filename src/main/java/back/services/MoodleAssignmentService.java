@@ -6,14 +6,12 @@ import back.entities.Task;
 import back.entities.TaskAttachment;
 import back.repositories.PersonRepository;
 import back.repositories.TaskRepository;
+import back.util.EncryptionUtil;
 import back.util.SeleniumUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.nodes.Document;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +30,7 @@ public class MoodleAssignmentService {
     private final TaskRepository taskRepository;
     private final PageParsingService pageParsingService;
     private final TextProcessingService textProcessingService;
+    private final EncryptionUtil encryptionUtil;
 
     @Value("${moodle.base-url:https://lms.sfedu.ru}")
     private String moodleBaseUrl;
@@ -82,7 +81,7 @@ public class MoodleAssignmentService {
                     log.info("Обрабатываем файл: {}, URL: {}", attachment.getFileName(), attachment.getFileUrl());
 
                     try {
-                        File tempFile = downloadFile(attachment.getFileUrl(), moodleSession);
+                        File tempFile = downloadFile(attachment.getFileUrl(), moodleSession, person);
 
                         String fileContent = textProcessingService.extractTextFromFile(tempFile);
                         log.info("Извлечен текст из {}, размер текста: {} символов", attachment.getFileName(), fileContent.length());
@@ -142,8 +141,15 @@ public class MoodleAssignmentService {
             log.info("MoodleSession отсутствует");
         }
 
+        return refreshMoodleSession(person);
+    }
+
+
+    private String refreshMoodleSession(Person person) {
         log.info("Получаем новый MoodleSession через Selenium для {}", person.getEmail());
-        String newSession = SeleniumUtil.loginAndGetMoodleSession(person.getEmail(), person.getPassword());
+        String decryptedPassword = encryptionUtil.decryptPassword(person.getPassword());
+        String newSession = SeleniumUtil.loginAndGetMoodleSession(person.getEmail(), decryptedPassword);
+        
         if (newSession == null) {
             log.error("Не удалось получить MoodleSession через Selenium");
             throw new RuntimeException("Не удалось войти в Moodle");
@@ -158,17 +164,20 @@ public class MoodleAssignmentService {
     }
 
 
-    private File downloadFile(String fileUrl, String moodleSession) throws IOException {
+    private File downloadFile(String fileUrl, String moodleSession, Person person) throws IOException {
         boolean retryWithNewSession = false;
         IOException lastException = null;
 
         try {
             return downloadFileWithSession(fileUrl, moodleSession);
         } catch (IOException e) {
-            // Проверяем, связана ли ошибка с перенаправлениями
             if (e.getMessage().contains("redirected too many") ||
                 e.getMessage().contains("код: 30") ||
-                e.getMessage().contains("код: 40")) {
+                e.getMessage().contains("код: 40") ||
+                e.getMessage().contains("403") ||
+                e.getMessage().contains("401") ||
+                e.getMessage().contains("Forbidden") ||
+                e.getMessage().contains("Unauthorized")) {
 
                 log.warn("Возникла ошибка при скачивании файла с текущей сессией: {}", e.getMessage());
                 retryWithNewSession = true;
@@ -178,53 +187,27 @@ public class MoodleAssignmentService {
             }
         }
 
-        // Если требуется повторная попытка с новой сессией
         if (retryWithNewSession) {
             log.info("Пробуем скачать файл с новой сессией после ошибки: {}", lastException.getMessage());
-            // Получаем текущего пользователя
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            if (auth != null && auth.getPrincipal() instanceof UserDetails) {
-                UserDetails userDetails = (UserDetails) auth.getPrincipal();
-                Person person = personRepository.findByEmail(userDetails.getUsername());
-
-                if (person == null) {
-                    throw new RuntimeException("Пользователь не найден");
-                }
-
-                // Принудительно получаем новую сессию
-                String newSession = null;
-                try {
-                    log.info("Принудительно запрашиваем новую сессию для пользователя {}", person.getEmail());
-                    newSession = SeleniumUtil.loginAndGetMoodleSession(person.getEmail(), person.getPassword());
-
-                    if (newSession != null) {
-                        log.info("Получена новая сессия, сохраняем и повторяем запрос");
-                        person.setMoodleSession(newSession);
-                        // Сохраняем без установки срока действия сессии, так как поле не используется
-                        personRepository.save(person);
-
-                        // Повторяем запрос с новой сессией
-                        return downloadFileWithSession(fileUrl, newSession);
-                    }
-                } catch (Exception seleniumEx) {
-                    log.error("Не удалось получить новую сессию: {}", seleniumEx.getMessage());
-                    throw new IOException("Не удалось скачать файл после попытки обновления сессии", lastException);
-                }
+            
+            try {
+                // Обновляем сессию
+                String newSession = refreshMoodleSession(person);
+                // Повторяем запрос с новой сессией
+                return downloadFileWithSession(fileUrl, newSession);
+            } catch (Exception seleniumEx) {
+                log.error("Не удалось получить новую сессию: {}", seleniumEx.getMessage());
+                throw new IOException("Не удалось скачать файл после попытки обновления сессии", lastException);
             }
-
-            throw new IOException("Не удалось скачать файл и не удалось обновить сессию", lastException);
         }
 
         // Этот код не должен быть достижим
         throw new IOException("Неизвестная ошибка при скачивании файла");
     }
 
-    /**
-     * Скачивает файл, используя указанную сессию Moodle
-     */
+
     private File downloadFileWithSession(String fileUrl, String moodleSession) throws IOException {
         try {
-            // Удаляем параметры из URL для имени файла
             String cleanUrl = fileUrl.contains("?")
                     ? fileUrl.substring(0, fileUrl.indexOf("?"))
                     : fileUrl;
@@ -234,7 +217,6 @@ public class MoodleAssignmentService {
             conn.setRequestMethod("GET");
             conn.setRequestProperty("Cookie", "MoodleSession=" + moodleSession);
             conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
-            // Устанавливаем тайм-аут соединения
             conn.setConnectTimeout(15000);
             conn.setReadTimeout(15000);
 
