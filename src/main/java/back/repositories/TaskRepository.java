@@ -6,8 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.sql.Date;
 import java.util.Collection;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -15,14 +15,14 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
   List<Task> findAllByAssignmentsUrlIn(Collection<String> urls);
 
   @Query("SELECT t FROM Task t JOIN FETCH t.subject WHERE t.deadline >= :date ORDER BY t.deadline ASC")
-  List<Task> findTasksWithDeadlinesOnOrAfterDate(@Param("date") Date date);
+  List<Task> findTasksWithDeadlinesOnOrAfterDate(@Param("date") java.util.Date date);
 
   @Query("SELECT t FROM Task t LEFT JOIN FETCH t.subject " +
       "JOIN StudentTaskAssignment sta ON sta.task = t " +
       "WHERE t.deadline >= :date " +
       "AND sta.person.id = :personId " +
       "ORDER BY t.deadline ASC")
-  List<Task> findTasksWithDeadlinesForUser(@Param("date") Date date, @Param("personId") Long personId);
+  List<Task> findTasksWithDeadlinesForUser(@Param("date") java.util.Date date, @Param("personId") Long personId);
   
   @Query("SELECT t FROM Task t " +
       "JOIN StudentTaskAssignment sta ON sta.task = t " +
@@ -33,7 +33,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
       "AND t.source = :source")
   Optional<Task> findDuplicateUserTask(
       @Param("name") String name, 
-      @Param("deadline") Date deadline, 
+      @Param("deadline") java.util.Date deadline, 
       @Param("description") String description, 
       @Param("personId") Long personId,
       @Param("source") TaskSource source);
@@ -56,8 +56,18 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
       "AND t.source = :source")
   Optional<Task> findDuplicateElderTask(
       @Param("name") String name, 
-      @Param("deadline") Date deadline, 
+      @Param("deadline") java.util.Date deadline, 
       @Param("description") String description, 
       @Param("groupId") Long groupId,
       @Param("source") TaskSource source);
+
+  @Query("SELECT t FROM Task t " +
+         "JOIN StudentTaskAssignment sta ON sta.task = t " +
+         "WHERE t.source = :source " +
+         "AND sta.person.id = :personId " +
+         "AND t.subject.semesterDate = :semesterDate")
+  List<Task> findTasksBySourceAndPersonIdAndSemesterDate(
+          @Param("source") TaskSource source,
+          @Param("personId") Long personId,
+          @Param("semesterDate") Date semesterDate);
 }

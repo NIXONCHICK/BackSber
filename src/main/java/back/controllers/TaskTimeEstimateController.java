@@ -5,11 +5,15 @@ import back.entities.Person;
 import back.services.OpenRouterService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Date;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/tasks/time-estimate")
@@ -71,6 +75,31 @@ public class TaskTimeEstimateController {
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Ошибка при обновлении оценки времени для задания {}: {}", taskId, e.getMessage(), e);
+            return ResponseEntity.badRequest().build();
+        }
+    }
+    
+    @GetMapping("/semester")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<TaskTimeEstimateResponse>> analyzeTasksBySemester(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date date) {
+        try {
+            log.info("Получен запрос на анализ заданий по семестру для даты: {}", date);
+            
+            Long userId = null;
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getPrincipal() instanceof Person) {
+                userId = ((Person) auth.getPrincipal()).getId();
+                log.info("ID пользователя из Person для анализа по семестру: {}", userId);
+            } else {
+                log.warn("Не удалось получить ID пользователя из Person для анализа по семестру");
+                return ResponseEntity.status(401).build();
+            }
+            
+            List<TaskTimeEstimateResponse> responses = openRouterService.analyzeTasksBySemester(date, userId);
+            return ResponseEntity.ok(responses);
+        } catch (Exception e) {
+            log.error("Ошибка при анализе заданий по семестру: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().build();
         }
     }

@@ -3,6 +3,9 @@ package back.services;
 import back.dto.TaskTimeEstimateResponse;
 import back.entities.Task;
 import back.entities.TaskAttachment;
+import back.entities.TaskSource;
+import back.repositories.StudentTaskAssignmentRepository;
+import back.repositories.SubjectRepository;
 import back.repositories.TaskRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,7 +17,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +28,8 @@ import java.util.*;
 public class OpenRouterService {
     
     private final TaskRepository taskRepository;
+    private final StudentTaskAssignmentRepository studentTaskAssignmentRepository;
+    private final SubjectRepository subjectRepository;
     private final MoodleAssignmentService moodleAssignmentService;
     private final ObjectMapper objectMapper = new ObjectMapper();
     
@@ -41,6 +48,9 @@ public class OpenRouterService {
     @Value("${app.url:https://platform.ictis.sfedu.ru}")
     private String appUrl;
     
+    // Пороговые даты для определения семестра
+    private static final LocalDate FALL_SEMESTER_START = LocalDate.of(2022, 9, 1);
+    private static final LocalDate SPRING_SEMESTER_START = LocalDate.of(2023, 2, 1);
 
     public TaskTimeEstimateResponse getTaskTimeEstimate(Long taskId, Long userId) throws Exception {
         Task task = taskRepository.findById(taskId)
@@ -371,5 +381,85 @@ public class OpenRouterService {
         public String getExplanation() {
             return explanation;
         }
+    }
+
+
+    public List<TaskTimeEstimateResponse> analyzeTasksBySemester(Date date, Long userId) throws Exception {
+        LocalDate localDate = new java.sql.Date(date.getTime()).toLocalDate();
+        java.sql.Date semesterDate = determineSemesterDate(localDate);
+        
+        log.info("Определен семестр с датой {} для запрошенной даты {}", semesterDate, date);
+        
+        List<Task> tasks = findTasksForUserBySemesterWithSource(userId, semesterDate, TaskSource.PARSED);
+        
+        log.info("Найдено {} заданий для пользователя {} в семестре с датой {}", tasks.size(), userId, semesterDate);
+        
+        List<TaskTimeEstimateResponse> responses = new ArrayList<>();
+        
+        for (Task task : tasks) {
+            try {
+                // Если задание уже имеет оценку времени, используем её
+                if (task.getEstimatedMinutes() != null && task.getTimeEstimateExplanation() != null) {
+                    log.info("Найдена существующая оценка времени для задания с ID: {}, оценка: {} минут", 
+                            task.getId(), task.getEstimatedMinutes());
+                    
+                    responses.add(TaskTimeEstimateResponse.builder()
+                            .taskId(task.getId())
+                            .taskName(task.getName())
+                            .estimatedMinutes(task.getEstimatedMinutes())
+                            .explanation(task.getTimeEstimateExplanation())
+                            .createdAt(task.getTimeEstimateCreatedAt())
+                            .fromCache(true)
+                            .build());
+                    continue;
+                }
+                
+                log.info("Оценка времени не найдена для задания {}, отправляем на анализ в OpenRouter API", task.getId());
+                String context = getTaskContext(task, userId);
+                OpenRouterResponse openRouterResponse = askOpenRouterForTimeEstimate(context, task.getName());
+                
+                task.setEstimatedMinutes(openRouterResponse.getEstimatedMinutes());
+                task.setTimeEstimateExplanation(openRouterResponse.getExplanation());
+                task.setTimeEstimateCreatedAt(new Date());
+                taskRepository.save(task);
+                
+                responses.add(TaskTimeEstimateResponse.builder()
+                        .taskId(task.getId())
+                        .taskName(task.getName())
+                        .estimatedMinutes(openRouterResponse.getEstimatedMinutes())
+                        .explanation(openRouterResponse.getExplanation())
+                        .createdAt(task.getTimeEstimateCreatedAt())
+                        .fromCache(false)
+                        .build());
+                
+            } catch (Exception e) {
+                log.error("Ошибка при анализе задания {}: {}", task.getId(), e.getMessage(), e);
+            }
+        }
+        
+        return responses;
+    }
+
+    private java.sql.Date determineSemesterDate(LocalDate date) {
+        if (date.isBefore(SPRING_SEMESTER_START)) {
+            return java.sql.Date.valueOf(FALL_SEMESTER_START);
+        } else {
+            return java.sql.Date.valueOf(SPRING_SEMESTER_START);
+        }
+    }
+    
+
+    private List<Task> findTasksForUserBySemesterWithSource(Long userId, java.sql.Date semesterDate, TaskSource source) {
+        List<Task> tasks = taskRepository.findTasksBySourceAndPersonIdAndSemesterDate(source, userId, semesterDate);
+        
+        log.info("Найдено заданий для пользователя {} с источником {} в семестре {}: {}", 
+                userId, source, semesterDate, tasks.size());
+        
+        if (!tasks.isEmpty()) {
+            log.info("Найденные задания: {}", 
+                    tasks.stream().map(Task::getName).collect(Collectors.joining(", ")));
+        }
+        
+        return tasks;
     }
 } 
