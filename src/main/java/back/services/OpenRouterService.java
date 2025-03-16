@@ -87,7 +87,6 @@ public class OpenRouterService {
         String context = getTaskContext(task, userId);
         OpenRouterResponse openRouterResponse = askOpenRouterForTimeEstimate(context, task.getName());
         
-        // Обновляем в БД
         task.setEstimatedMinutes(openRouterResponse.getEstimatedMinutes());
         task.setTimeEstimateExplanation(openRouterResponse.getExplanation());
         task.setTimeEstimateCreatedAt(new Date());
@@ -225,7 +224,6 @@ public class OpenRouterService {
                     JsonNode rootNode = objectMapper.readTree(responseBody);
                     String content = rootNode.path("choices").get(0).path("message").path("content").asText();
                     
-                    // Извлекаем JSON из ответа
                     OpenRouterResponse openRouterResponse = parseOpenRouterResponse(content);
                     log.info("OpenRouter API оценил время выполнения задания '{}' в {} минут, объяснение: {}", 
                             taskName, openRouterResponse.getEstimatedMinutes(), openRouterResponse.getExplanation());
@@ -319,7 +317,6 @@ public class OpenRouterService {
     
     private int extractMinutesFromText(String text) {
         try {
-            // Ищем упоминание часов
             if (text.matches(".*\\b(\\d+)\\s*час.*")) {
                 String[] parts = text.split("\\b(\\d+)\\s*час");
                 for (String part : parts) {

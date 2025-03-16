@@ -29,6 +29,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.optaplanner:optaplanner-spring-boot-starter:8.22.1.Final'
+    implementation 'org.optaplanner:optaplanner-constraint-streams:8.22.1.Final'
     implementation 'io.jsonwebtoken:jjwt-api:0.12.5'
     implementation 'org.springframework.boot:spring-boot-starter-mail'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.5'
