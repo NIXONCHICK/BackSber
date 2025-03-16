@@ -48,10 +48,6 @@ public class OpenRouterService {
     @Value("${app.url:https://platform.ictis.sfedu.ru}")
     private String appUrl;
     
-    // Пороговые даты для определения семестра
-    private static final LocalDate FALL_SEMESTER_START = LocalDate.of(2022, 9, 1);
-    private static final LocalDate SPRING_SEMESTER_START = LocalDate.of(2023, 2, 1);
-
     public TaskTimeEstimateResponse getTaskTimeEstimate(Long taskId, Long userId) throws Exception {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Задание не найдено"));
@@ -441,10 +437,15 @@ public class OpenRouterService {
     }
 
     private java.sql.Date determineSemesterDate(LocalDate date) {
-        if (date.isBefore(SPRING_SEMESTER_START)) {
-            return java.sql.Date.valueOf(FALL_SEMESTER_START);
+        int year = date.getYear();
+        int month = date.getMonthValue();
+        
+        if (month >= 9 && month <= 12) {
+            return java.sql.Date.valueOf(LocalDate.of(year, 9, 1));
+        } else if (month >= 1 && month <= 6) {
+            return java.sql.Date.valueOf(LocalDate.of(year, 2, 1));
         } else {
-            return java.sql.Date.valueOf(SPRING_SEMESTER_START);
+            return java.sql.Date.valueOf(LocalDate.of(year, 2, 1));
         }
     }
     
