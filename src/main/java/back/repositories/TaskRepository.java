@@ -70,4 +70,21 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
           @Param("source") TaskSource source,
           @Param("personId") Long personId,
           @Param("semesterDate") Date semesterDate);
+
+  @Query("SELECT t FROM Task t " +
+         "JOIN StudentTaskAssignment sta ON sta.task = t " +
+         "LEFT JOIN FETCH t.subject " +
+         "WHERE sta.person.id = :personId")
+  List<Task> findTasksByPersonId(@Param("personId") Long personId);
+  
+  @Query("SELECT t FROM Task t " +
+         "JOIN StudentTaskAssignment sta ON sta.task = t " +
+         "LEFT JOIN FETCH t.subject s " +
+         "WHERE sta.person.id = :personId " +
+         "AND t.source = :source " +
+         "AND s.semesterDate = :semesterDate")
+  List<Task> findTasksByPersonIdAndSemesterAndSource(
+         @Param("personId") Long personId,
+         @Param("semesterDate") java.sql.Date semesterDate,
+         @Param("source") TaskSource source);
 }
