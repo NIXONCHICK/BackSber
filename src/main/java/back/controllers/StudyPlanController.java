@@ -3,6 +3,7 @@ package back.controllers;
 import back.dto.StudyPlanResponse;
 import back.entities.Person;
 import back.scheduler.service.StudyPlannerService;
+import back.services.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -21,12 +22,9 @@ import java.time.LocalDate;
 public class StudyPlanController {
     
     private final StudyPlannerService studyPlannerService;
+    private final EmailService emailService;
     
-    /**
-     * Создает оптимальный план обучения на семестр для текущего пользователя
-     * @param date Дата, определяющая семестр
-     * @return План обучения
-     */
+
     @GetMapping("/semester")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<StudyPlanResponse> createSemesterStudyPlan(
@@ -35,15 +33,23 @@ public class StudyPlanController {
         try {
             log.info("Получен запрос на создание плана обучения на семестр для даты {}", date);
             
-            // Получаем текущего пользователя
             Person currentUser = getCurrentUser();
             if (currentUser == null) {
                 log.warn("Не удалось получить информацию о текущем пользователе");
                 return ResponseEntity.status(401).build();
             }
             
-            // Создаем план обучения
             StudyPlanResponse response = studyPlannerService.createStudyPlan(currentUser, date);
+            
+            if (currentUser.getEmail() != null) {
+                log.info("Отправка плана обучения на почту: {}", currentUser.getEmail());
+                emailService.sendStudyPlanNotification(
+                    currentUser.getEmail(),
+                    response,
+                    date
+                );
+            }
+            
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
@@ -52,12 +58,7 @@ public class StudyPlanController {
         }
     }
     
-    /**
-     * Создает оптимальный план обучения на указанный период для текущего пользователя
-     * @param startDate Дата начала периода
-     * @param endDate Дата окончания периода
-     * @return План обучения
-     */
+
     @GetMapping("/custom")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<StudyPlanResponse> createCustomStudyPlan(
@@ -67,7 +68,6 @@ public class StudyPlanController {
         try {
             log.info("Получен запрос на создание плана обучения на период с {} по {}", startDate, endDate);
             
-            // Проверяем даты
             if (startDate.isAfter(endDate)) {
                 log.warn("Дата начала {} после даты окончания {}", startDate, endDate);
                 return ResponseEntity.badRequest().body(
@@ -77,15 +77,23 @@ public class StudyPlanController {
                 );
             }
             
-            // Получаем текущего пользователя
             Person currentUser = getCurrentUser();
             if (currentUser == null) {
                 log.warn("Не удалось получить информацию о текущем пользователе");
                 return ResponseEntity.status(401).build();
             }
             
-            // Создаем план обучения
             StudyPlanResponse response = studyPlannerService.createStudyPlan(currentUser, startDate, endDate);
+            
+            if (currentUser.getEmail() != null) {
+                log.info("Отправка плана обучения на период на почту: {}", currentUser.getEmail());
+                emailService.sendStudyPlanNotification(
+                    currentUser.getEmail(),
+                    response,
+                    startDate
+                );
+            }
+            
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
@@ -94,9 +102,7 @@ public class StudyPlanController {
         }
     }
     
-    /**
-     * Получает текущего аутентифицированного пользователя
-     */
+
     private Person getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.getPrincipal() instanceof Person) {

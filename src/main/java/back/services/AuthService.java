@@ -72,12 +72,5 @@ public class AuthService {
     
     return new LoginResponse(person.getId(), person.getEmail(), person.getRole(), token);
   }
-  
-  public boolean validateToken(String token, UserDetails userDetails) {
-    return jwtUtil.validateToken(token, userDetails);
-  }
-  
-  public String extractUsername(String token) {
-    return jwtUtil.extractUsername(token);
-  }
+
 }

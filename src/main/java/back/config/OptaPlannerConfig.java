@@ -19,7 +19,7 @@ public class OptaPlannerConfig {
                 .withSolutionClass(SemesterSchedule.class)
                 .withConstraintProviderClass(back.scheduler.constraint.SemesterScheduleConstraintProvider.class)
                 .withTerminationConfig(new TerminationConfig()
-                    .withSecondsSpentLimit(30L));
+                    .withSecondsSpentLimit(300L));
         
         return SolverFactory.create(solverConfig);
     }

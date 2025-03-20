@@ -8,5 +8,4 @@ import java.util.List;
 public interface SubjectRepository extends JpaRepository<Subject, Long> {
   List<Subject> findAllByAssignmentsUrlIn(Collection<String> urls);
 
-  Subject findByAssignmentsUrl(String assignmentsUrl);
 }

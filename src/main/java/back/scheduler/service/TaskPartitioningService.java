@@ -110,10 +110,6 @@ public class TaskPartitioningService {
         
         log.info("Связи между частями заданий установлены");
     }
-    
 
-    public boolean requiresPartitioning(Task task) {
-        Integer estimatedMinutes = task.getEstimatedMinutes();
-        return estimatedMinutes != null && estimatedMinutes > MAX_MINUTES_PER_DAY;
-    }
-} 
+
+}

@@ -4,11 +4,10 @@ import back.dto.TaskTimeEstimateResponse;
 import back.entities.Task;
 import back.entities.TaskAttachment;
 import back.entities.TaskSource;
-import back.repositories.StudentTaskAssignmentRepository;
-import back.repositories.SubjectRepository;
 import back.repositories.TaskRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,36 +25,34 @@ import java.util.stream.Collectors;
 @Slf4j
 @Transactional
 public class OpenRouterService {
-    
+
     private final TaskRepository taskRepository;
-    private final StudentTaskAssignmentRepository studentTaskAssignmentRepository;
-    private final SubjectRepository subjectRepository;
     private final MoodleAssignmentService moodleAssignmentService;
     private final ObjectMapper objectMapper = new ObjectMapper();
-    
+
     @Value("${openrouter.api.key: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}")
     private String apiKey;
-    
+
     @Value("${openrouter.api.url:https://openrouter.ai/api/v1/chat/completions}")
     private String apiUrl;
-    
+
     @Value("${openrouter.model:deepseek/deepseek-chat:free}")
     private String model;
-    
+
     @Value("${app.name:ИКТИБ Платформа}")
     private String appName;
-    
+
     @Value("${app.url:https://platform.ictis.sfedu.ru}")
     private String appUrl;
-    
-    public TaskTimeEstimateResponse getTaskTimeEstimate(Long taskId, Long userId) throws Exception {
+
+    public TaskTimeEstimateResponse getTaskTimeEstimate(Long taskId, Long userId) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Задание не найдено"));
-        
+
         if (task.getEstimatedMinutes() != null && task.getTimeEstimateExplanation() != null) {
-            log.info("Найдена существующая оценка времени для задания с ID: {}, оценка: {} минут", 
+            log.info("Найдена существующая оценка времени для задания с ID: {}, оценка: {} минут",
                     taskId, task.getEstimatedMinutes());
-            
+
             return TaskTimeEstimateResponse.builder()
                     .taskId(task.getId())
                     .taskName(task.getName())
@@ -65,16 +62,16 @@ public class OpenRouterService {
                     .fromCache(true)
                     .build();
         }
-        
+
         log.info("Оценка времени не найдена в базе данных, запрашиваем у OpenRouter API");
         String context = getTaskContext(task, userId);
         OpenRouterResponse openRouterResponse = askOpenRouterForTimeEstimate(context, task.getName());
-        
+
         task.setEstimatedMinutes(openRouterResponse.getEstimatedMinutes());
         task.setTimeEstimateExplanation(openRouterResponse.getExplanation());
         task.setTimeEstimateCreatedAt(new Date());
         taskRepository.save(task);
-        
+
         return TaskTimeEstimateResponse.builder()
                 .taskId(task.getId())
                 .taskName(task.getName())
@@ -84,20 +81,20 @@ public class OpenRouterService {
                 .fromCache(false)
                 .build();
     }
-    
 
-    public TaskTimeEstimateResponse refreshTaskTimeEstimate(Long taskId, Long userId) throws Exception {
+
+    public TaskTimeEstimateResponse refreshTaskTimeEstimate(Long taskId, Long userId) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Задание не найдено"));
-        
+
         String context = getTaskContext(task, userId);
         OpenRouterResponse openRouterResponse = askOpenRouterForTimeEstimate(context, task.getName());
-        
+
         task.setEstimatedMinutes(openRouterResponse.getEstimatedMinutes());
         task.setTimeEstimateExplanation(openRouterResponse.getExplanation());
         task.setTimeEstimateCreatedAt(new Date());
         taskRepository.save(task);
-        
+
         return TaskTimeEstimateResponse.builder()
                 .taskId(task.getId())
                 .taskName(task.getName())
@@ -107,48 +104,48 @@ public class OpenRouterService {
                 .fromCache(false)
                 .build();
     }
-    
 
-    private String getTaskContext(Task task, Long userId) throws Exception {
+
+    private String getTaskContext(Task task, Long userId) {
         try {
             return moodleAssignmentService.analyzeAssignment(task.getId(), userId).getExtractedText();
         } catch (Exception e) {
             log.warn("Не удалось получить полный контекст задания через Moodle: {}", e.getMessage());
-            
+
             StringBuilder allText = new StringBuilder();
-            
+
             if (task.getDescription() != null && !task.getDescription().isEmpty()) {
                 allText.append("===== ОПИСАНИЕ ЗАДАНИЯ =====\n\n");
                 allText.append(task.getDescription()).append("\n\n");
             }
-            
+
             if (task.getAttachments() != null && !task.getAttachments().isEmpty()) {
                 log.info("Используем информацию о {} прикрепленных файлах из базы данных", task.getAttachments().size());
-                
+
                 for (TaskAttachment attachment : task.getAttachments()) {
                     allText.append("===== ФАЙЛ: ").append(attachment.getFileName()).append(" =====\n\n");
                     allText.append("Тип файла: ").append(attachment.getFileExtension()).append("\n");
                     allText.append("URL файла: ").append(attachment.getFileUrl()).append("\n\n");
-                    
+
                     allText.append("Содержимое файла недоступно для анализа - файл может содержать код, данные или документацию.\n\n");
                 }
             } else {
                 allText.append("В задании нет прикрепленных файлов.\n\n");
             }
-            
+
             if (task.getSubject() != null) {
                 allText.append("Предмет: ").append(task.getSubject().getName()).append("\n\n");
             }
-            
+
             if (task.getDeadline() != null) {
                 allText.append("Дедлайн: ").append(task.getDeadline()).append("\n\n");
             }
-            
+
             log.info("Сформирован альтернативный контекст задания длиной {} символов", allText.length());
             return allText.toString();
         }
     }
-    
+
 
     private OpenRouterResponse askOpenRouterForTimeEstimate(String context, String taskName) {
         try {
@@ -158,11 +155,11 @@ public class OpenRouterService {
             headers.setBearerAuth(apiKey);
             headers.set("HTTP-Referer", appUrl);
             headers.set("X-Title", appName);
-            
+
             taskName = (taskName != null && !taskName.isEmpty()) ? taskName : "Задание";
-            
+
             log.info("Отправляем запрос с контекстом размером {} символов для задания: '{}'", context.length(), taskName);
-            
+
             String systemPrompt = "Ты эксперт по оценке сложности и времени выполнения учебных заданий для студентов. " +
                     "Твоя задача - внимательно прочитать описание задания и все прикрепленные файлы, а затем " +
                     "оценить примерное время выполнения задания в минутах. " +
@@ -189,10 +186,10 @@ public class OpenRouterService {
                     "Используй инфинитивы, настоящее и будущее время, обобщенные формулировки." +
                     "ВАЖНО: в поле explanation опиши только, ЧТО включает в себя задание (основные этапы работы), " +
                     "но НЕ указывай конкретное время для каждого этапа или для всего задания. Оценка времени уже есть в поле estimatedMinutes." +
-                    "ОБЯЗАТЕЛЬНО в начале объяснения укажи уровень сложности задания (например: 'Это лёгкое/среднее/сложное задание', " + 
+                    "ОБЯЗАТЕЛЬНО в начале объяснения укажи уровень сложности задания (например: 'Это лёгкое/среднее/сложное задание', " +
                     "'Задание средней сложности', 'Это довольно простое задание', 'Задание повышенной сложности' и т.п.). " +
                     "Оценивай сложность по шкале: очень лёгкое, лёгкое, среднее, выше среднего, сложное, очень сложное.";
-            
+
             String userPrompt = "Внимательно проанализируй следующее задание.\n\n" +
                     "Название (не главное): " + taskName + "\n\n" +
                     "ПОДРОБНОЕ СОДЕРЖАНИЕ ЗАДАНИЯ (самое важное):\n\n" + context + "\n\n" +
@@ -207,7 +204,7 @@ public class OpenRouterService {
                     "не используй формы типа 'сделал/сделала', 'мог бы/могла бы', а используй конструкции без указания пола: 'можно сделать', 'стоит изучить', 'тебе понадобится', 'нужно будет'. " +
                     "ВАЖНО: в объяснении опиши только, что включает в себя задание (теория, практика, отчет и т.д.), но НЕ указывай время выполнения для каждого этапа или для всего задания. Например, вместо 'На изучение теории уйдет 1 час' напиши 'Задание включает изучение теоретического материала'." +
                     "ОБЯЗАТЕЛЬНО: в начале объяснения укажи уровень сложности задания (легкое, среднее, сложное и т.д.).";
-            
+
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("model", model);
             requestBody.put("temperature", 0.0);
@@ -215,23 +212,23 @@ public class OpenRouterService {
                     Map.of("role", "system", "content", systemPrompt),
                     Map.of("role", "user", "content", userPrompt)
             );
-            
+
             requestBody.put("messages", messages);
-            
+
             log.info("Отправляем запрос к OpenRouter API для оценки времени выполнения задания: {}", taskName);
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
-            
+
             try {
                 ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, entity, String.class);
-                
+
                 if (response.getStatusCode() == HttpStatus.OK) {
                     String responseBody = response.getBody();
                     log.debug("Получен ответ от OpenRouter API: {}", responseBody);
                     JsonNode rootNode = objectMapper.readTree(responseBody);
                     String content = rootNode.path("choices").get(0).path("message").path("content").asText();
-                    
+
                     OpenRouterResponse openRouterResponse = parseOpenRouterResponse(content);
-                    log.info("OpenRouter API оценил время выполнения задания '{}' в {} минут, объяснение: {}", 
+                    log.info("OpenRouter API оценил время выполнения задания '{}' в {} минут, объяснение: {}",
                             taskName, openRouterResponse.getEstimatedMinutes(), openRouterResponse.getExplanation());
                     return openRouterResponse;
                 } else {
@@ -241,14 +238,14 @@ public class OpenRouterService {
             } catch (Exception e) {
                 if (context.length() > 20000) {
                     log.warn("Произошла ошибка при обработке полного контекста: {}. Пробуем отправить сокращенный контекст.", e.getMessage());
-                    
-                    String shortenedContext = context;
-                    
+
+                    String shortenedContext;
+
                     shortenedContext = context.substring(0, 10000) +
-                            "\n\n... [текст сокращен из-за ограничений API, пропущено " + 
-                            (context.length() - 20000) + " символов] ...\n\n" + 
+                            "\n\n... [текст сокращен из-за ограничений API, пропущено " +
+                            (context.length() - 20000) + " символов] ...\n\n" +
                             context.substring(context.length() - 10000);
-                    
+
                     String shortenedUserPrompt = "Внимательно проанализируй следующее задание.\n\n" +
                             "Название (не главное): " + taskName + "\n\n" +
                             "ПОДРОБНОЕ СОДЕРЖАНИЕ ЗАДАНИЯ (самое важное):\n\n" + shortenedContext + "\n\n" +
@@ -263,26 +260,26 @@ public class OpenRouterService {
                             "не используй формы типа 'сделал/сделала', 'мог бы/могла бы', а используй конструкции без указания пола: 'можно сделать', 'стоит изучить', 'тебе понадобится', 'нужно будет'. " +
                             "ВАЖНО: в объяснении опиши только, что включает в себя задание (теория, практика, отчет и т.д.), но НЕ указывай время выполнения для каждого этапа или для всего задания. Например, вместо 'На изучение теории уйдет 1 час' напиши 'Задание включает изучение теоретического материала'." +
                             "ОБЯЗАТЕЛЬНО: в начале объяснения укажи уровень сложности задания (легкое, среднее, сложное и т.д.).";
-                    
+
                     List<Map<String, String>> shortenedMessages = List.of(
                             Map.of("role", "system", "content", systemPrompt),
                             Map.of("role", "user", "content", shortenedUserPrompt)
                     );
-                    
+
                     requestBody.put("messages", shortenedMessages);
                     HttpEntity<Map<String, Object>> shortenedEntity = new HttpEntity<>(requestBody, headers);
-                    
+
                     log.info("Повторная попытка с сокращенным контекстом размером {} символов", shortenedContext.length());
                     ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, shortenedEntity, String.class);
-                    
+
                     if (response.getStatusCode() == HttpStatus.OK) {
                         String responseBody = response.getBody();
                         log.debug("Получен ответ от OpenRouter API со сокращенным контекстом: {}", responseBody);
                         JsonNode rootNode = objectMapper.readTree(responseBody);
                         String content = rootNode.path("choices").get(0).path("message").path("content").asText();
-                        
+
                         OpenRouterResponse openRouterResponse = parseOpenRouterResponse(content);
-                        log.info("OpenRouter API оценил время выполнения задания '{}' в {} минут (со сокращенным контекстом), объяснение: {}", 
+                        log.info("OpenRouter API оценил время выполнения задания '{}' в {} минут (со сокращенным контекстом), объяснение: {}",
                                 taskName, openRouterResponse.getEstimatedMinutes(), openRouterResponse.getExplanation());
                         return openRouterResponse;
                     } else {
@@ -298,18 +295,18 @@ public class OpenRouterService {
             return new OpenRouterResponse(120, "Примерная оценка по умолчанию: задание средней сложности, требующее около 2 часов работы. Точная оценка невозможна из-за ошибки API.");
         }
     }
-    
+
 
     private OpenRouterResponse parseOpenRouterResponse(String content) {
         try {
             String jsonContent = content.trim();
-            
+
             if (jsonContent.startsWith("```json") && jsonContent.endsWith("```")) {
                 jsonContent = jsonContent.substring(7, jsonContent.length() - 3).trim();
             } else if (jsonContent.startsWith("```") && jsonContent.endsWith("```")) {
                 jsonContent = jsonContent.substring(3, jsonContent.length() - 3).trim();
             }
-            
+
             JsonNode jsonNode = objectMapper.readTree(jsonContent);
             int estimatedMinutes = jsonNode.path("estimatedMinutes").asInt();
             String explanation = jsonNode.path("explanation").asText();
@@ -320,7 +317,7 @@ public class OpenRouterService {
             return new OpenRouterResponse(estimatedMinutes, "Извлечено из текста ответа: " + content.substring(0, Math.min(200, content.length())));
         }
     }
-    
+
     private int extractMinutesFromText(String text) {
         try {
             if (text.matches(".*\\b(\\d+)\\s*час.*")) {
@@ -332,7 +329,7 @@ public class OpenRouterService {
                     }
                 }
             }
-            
+
             if (text.matches(".*\\b(\\d+)\\s*минут.*")) {
                 String[] parts = text.split("\\b(\\d+)\\s*минут");
                 for (String part : parts) {
@@ -341,7 +338,7 @@ public class OpenRouterService {
                     }
                 }
             }
-            
+
             String[] words = text.split("\\s+");
             for (String word : words) {
                 if (word.matches("\\d+")) {
@@ -353,7 +350,7 @@ public class OpenRouterService {
                     }
                 }
             }
-            
+
             return 120;
         } catch (Exception e) {
             log.error("Ошибка при извлечении минут из текста", e);
@@ -361,6 +358,7 @@ public class OpenRouterService {
         }
     }
 
+    @Getter
     private static class OpenRouterResponse {
         private final int estimatedMinutes;
         private final String explanation;
@@ -370,35 +368,27 @@ public class OpenRouterService {
             this.explanation = explanation;
         }
 
-        public int getEstimatedMinutes() {
-            return estimatedMinutes;
-        }
-
-        public String getExplanation() {
-            return explanation;
-        }
     }
 
 
-    public List<TaskTimeEstimateResponse> analyzeTasksBySemester(Date date, Long userId) throws Exception {
+    public List<TaskTimeEstimateResponse> analyzeTasksBySemester(Date date, Long userId) {
         LocalDate localDate = new java.sql.Date(date.getTime()).toLocalDate();
         java.sql.Date semesterDate = determineSemesterDate(localDate);
-        
+
         log.info("Определен семестр с датой {} для запрошенной даты {}", semesterDate, date);
-        
-        List<Task> tasks = findTasksForUserBySemesterWithSource(userId, semesterDate, TaskSource.PARSED);
-        
+
+        List<Task> tasks = findTasksForUserBySemesterWithSource(userId, semesterDate);
+
         log.info("Найдено {} заданий для пользователя {} в семестре с датой {}", tasks.size(), userId, semesterDate);
-        
+
         List<TaskTimeEstimateResponse> responses = new ArrayList<>();
-        
+
         for (Task task : tasks) {
             try {
-                // Если задание уже имеет оценку времени, используем её
                 if (task.getEstimatedMinutes() != null && task.getTimeEstimateExplanation() != null) {
-                    log.info("Найдена существующая оценка времени для задания с ID: {}, оценка: {} минут", 
+                    log.info("Найдена существующая оценка времени для задания с ID: {}, оценка: {} минут",
                             task.getId(), task.getEstimatedMinutes());
-                    
+
                     responses.add(TaskTimeEstimateResponse.builder()
                             .taskId(task.getId())
                             .taskName(task.getName())
@@ -409,16 +399,16 @@ public class OpenRouterService {
                             .build());
                     continue;
                 }
-                
+
                 log.info("Оценка времени не найдена для задания {}, отправляем на анализ в OpenRouter API", task.getId());
                 String context = getTaskContext(task, userId);
                 OpenRouterResponse openRouterResponse = askOpenRouterForTimeEstimate(context, task.getName());
-                
+
                 task.setEstimatedMinutes(openRouterResponse.getEstimatedMinutes());
                 task.setTimeEstimateExplanation(openRouterResponse.getExplanation());
                 task.setTimeEstimateCreatedAt(new Date());
                 taskRepository.save(task);
-                
+
                 responses.add(TaskTimeEstimateResponse.builder()
                         .taskId(task.getId())
                         .taskName(task.getName())
@@ -427,40 +417,40 @@ public class OpenRouterService {
                         .createdAt(task.getTimeEstimateCreatedAt())
                         .fromCache(false)
                         .build());
-                
+
             } catch (Exception e) {
                 log.error("Ошибка при анализе задания {}: {}", task.getId(), e.getMessage(), e);
             }
         }
-        
+
         return responses;
     }
 
     private java.sql.Date determineSemesterDate(LocalDate date) {
         int year = date.getYear();
         int month = date.getMonthValue();
-        
-        if (month >= 9 && month <= 12) {
+
+        if (month >= 9) {
             return java.sql.Date.valueOf(LocalDate.of(year, 9, 1));
-        } else if (month >= 1 && month <= 6) {
+        } else if (month <= 6) {
             return java.sql.Date.valueOf(LocalDate.of(year, 2, 1));
         } else {
             return java.sql.Date.valueOf(LocalDate.of(year, 2, 1));
         }
     }
-    
 
-    private List<Task> findTasksForUserBySemesterWithSource(Long userId, java.sql.Date semesterDate, TaskSource source) {
-        List<Task> tasks = taskRepository.findTasksBySourceAndPersonIdAndSemesterDate(source, userId, semesterDate);
-        
-        log.info("Найдено заданий для пользователя {} с источником {} в семестре {}: {}", 
-                userId, source, semesterDate, tasks.size());
-        
+
+    private List<Task> findTasksForUserBySemesterWithSource(Long userId, java.sql.Date semesterDate) {
+        List<Task> tasks = taskRepository.findTasksBySourceAndPersonIdAndSemesterDate(TaskSource.PARSED, userId, semesterDate);
+
+        log.info("Найдено заданий для пользователя {} с источником {} в семестре {}: {}",
+                userId, TaskSource.PARSED, semesterDate, tasks.size());
+
         if (!tasks.isEmpty()) {
-            log.info("Найденные задания: {}", 
+            log.info("Найденные задания: {}",
                     tasks.stream().map(Task::getName).collect(Collectors.joining(", ")));
         }
-        
+
         return tasks;
     }
 } 

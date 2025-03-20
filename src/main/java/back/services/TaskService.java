@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -33,11 +34,6 @@ public class TaskService {
     return tasks.stream()
         .map(this::convertToTaskDeadlineResponse)
         .collect(Collectors.toList());
-  }
-
-  public Optional<TaskResponse> getTaskById(Long id) {
-    return taskRepository.findById(id)
-        .map(this::convertToTaskDeadlineResponse);
   }
 
 
@@ -220,7 +216,7 @@ public class TaskService {
     }
 
     List<StudentTaskAssignment> assignments = studentTaskAssignmentRepository.findAllByTaskId(taskId);
-    if (assignments.isEmpty() || assignments.get(0).getPerson().getGroup().getId() != elder.getGroup().getId()) {
+    if (assignments.isEmpty() || !Objects.equals(assignments.get(0).getPerson().getGroup().getId(), elder.getGroup().getId())) {
       throw new RuntimeException("Староста может редактировать только задания своей группы");
     }
 
@@ -268,7 +264,7 @@ public class TaskService {
     }
 
     List<StudentTaskAssignment> assignments = studentTaskAssignmentRepository.findAllByTaskId(taskId);
-    if (assignments.isEmpty() || assignments.get(0).getPerson().getGroup().getId() != elder.getGroup().getId()) {
+    if (assignments.isEmpty() || !Objects.equals(assignments.get(0).getPerson().getGroup().getId(), elder.getGroup().getId())) {
       throw new RuntimeException("Староста может удалять только задания своей группы");
     }
 

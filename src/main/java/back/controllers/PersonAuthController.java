@@ -64,6 +64,4 @@ public class PersonAuthController {
           .body("{\"message\": \"" + ex.getMessage() + "\"}");
     }
   }
-
-
 }

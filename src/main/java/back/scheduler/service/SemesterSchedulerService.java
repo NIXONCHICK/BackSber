@@ -3,7 +3,6 @@ package back.scheduler.service;
 import back.entities.Subject;
 import back.entities.Task;
 import back.entities.TaskSource;
-import back.repositories.SubjectRepository;
 import back.repositories.TaskRepository;
 import back.scheduler.domain.SemesterAssignment;
 import back.scheduler.domain.SemesterSchedule;
@@ -29,7 +28,6 @@ import java.util.stream.Collectors;
 public class SemesterSchedulerService {
 
     private final TaskRepository taskRepository;
-    private final SubjectRepository subjectRepository;
     private final SolverManager<SemesterSchedule, Long> solverManager;
 
     public ScheduleResponse generateSemesterSchedule(Long userId, int year, int month) {
@@ -101,8 +99,7 @@ public class SemesterSchedulerService {
             int subjectMonth = subjectSemesterDate.getMonthValue();
             int startMonth = semesterStart.getMonthValue();
             
-            return (subjectMonth >= 9 && startMonth >= 9) ||
-                   (subjectMonth >= 1 && subjectMonth <= 6 && startMonth >= 1 && startMonth <= 6);
+            return subjectMonth >= 9 && startMonth >= 9 || subjectMonth <= 6 && startMonth <= 6;
         }
         
         return false;

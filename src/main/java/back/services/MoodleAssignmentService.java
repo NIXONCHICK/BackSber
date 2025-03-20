@@ -58,7 +58,6 @@ public class MoodleAssignmentService {
             StringBuilder allText = new StringBuilder();
             int totalTokens = 0;
 
-            // Если у задания есть описание, добавляем его в анализ
             if (task.getDescription() != null && !task.getDescription().isEmpty()) {
                 log.info("Анализируем описание задания");
                 int descriptionTokens = textProcessingService.countTokens(task.getDescription());
@@ -165,8 +164,7 @@ public class MoodleAssignmentService {
 
 
     private File downloadFile(String fileUrl, String moodleSession, Person person) throws IOException {
-        boolean retryWithNewSession = false;
-        IOException lastException = null;
+      IOException lastException;
 
         try {
             return downloadFileWithSession(fileUrl, moodleSession);
@@ -180,29 +178,22 @@ public class MoodleAssignmentService {
                 e.getMessage().contains("Unauthorized")) {
 
                 log.warn("Возникла ошибка при скачивании файла с текущей сессией: {}", e.getMessage());
-                retryWithNewSession = true;
-                lastException = e;
+              lastException = e;
             } else {
                 throw e;
             }
         }
 
-        if (retryWithNewSession) {
-            log.info("Пробуем скачать файл с новой сессией после ошибки: {}", lastException.getMessage());
-            
-            try {
-                // Обновляем сессию
-                String newSession = refreshMoodleSession(person);
-                // Повторяем запрос с новой сессией
-                return downloadFileWithSession(fileUrl, newSession);
-            } catch (Exception seleniumEx) {
-                log.error("Не удалось получить новую сессию: {}", seleniumEx.getMessage());
-                throw new IOException("Не удалось скачать файл после попытки обновления сессии", lastException);
-            }
-        }
+      log.info("Пробуем скачать файл с новой сессией после ошибки: {}", lastException.getMessage());
 
-        // Этот код не должен быть достижим
-        throw new IOException("Неизвестная ошибка при скачивании файла");
+      try {
+          String newSession = refreshMoodleSession(person);
+          return downloadFileWithSession(fileUrl, newSession);
+      } catch (Exception seleniumEx) {
+          log.error("Не удалось получить новую сессию: {}", seleniumEx.getMessage());
+          throw new IOException("Не удалось скачать файл после попытки обновления сессии", lastException);
+      }
+
     }
 
 

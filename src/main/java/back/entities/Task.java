@@ -26,12 +26,18 @@ public class Task {
   @Column(name = "description", columnDefinition = "TEXT")
   private String description;
 
+  @Setter
+  @Getter
   @Column(name = "estimated_minutes")
   private Integer estimatedMinutes;
 
+  @Setter
+  @Getter
   @Column(name = "time_estimate_explanation", columnDefinition = "TEXT")
   private String timeEstimateExplanation;
 
+  @Setter
+  @Getter
   @Column(name = "time_estimate_created_at")
   private Date timeEstimateCreatedAt;
 
@@ -48,45 +54,4 @@ public class Task {
   @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<TaskAttachment> attachments;
 
-  public Integer getEstimatedMinutes() {
-    return estimatedMinutes;
-  }
-
-  public void setEstimatedMinutes(Integer estimatedMinutes) {
-    this.estimatedMinutes = estimatedMinutes;
-  }
-
-  public String getTimeEstimateExplanation() {
-    return timeEstimateExplanation;
-  }
-
-  public void setTimeEstimateExplanation(String timeEstimateExplanation) {
-    this.timeEstimateExplanation = timeEstimateExplanation;
-  }
-
-  public Date getTimeEstimateCreatedAt() {
-    return timeEstimateCreatedAt;
-  }
-
-  public void setTimeEstimateCreatedAt(Date timeEstimateCreatedAt) {
-    this.timeEstimateCreatedAt = timeEstimateCreatedAt;
-  }
-
-  @Transient
-  public String getFormattedEstimatedTime() {
-    if (estimatedMinutes == null) {
-      return "Не определено";
-    }
-    
-    int hours = estimatedMinutes / 60;
-    int minutes = estimatedMinutes % 60;
-    
-    if (hours > 0 && minutes > 0) {
-      return hours + " ч " + minutes + " мин";
-    } else if (hours > 0) {
-      return hours + " ч";
-    } else {
-      return minutes + " мин";
-    }
-  }
 }

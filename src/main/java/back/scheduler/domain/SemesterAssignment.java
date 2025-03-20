@@ -23,14 +23,14 @@ public class SemesterAssignment {
     private LocalDate assignedDay;
     
     private Integer durationMinutes;
-    
+
     public SemesterAssignment() {
     }
     
     public SemesterAssignment(Long id, Task task) {
         this.id = id;
         this.task = task;
-        this.durationMinutes = task.getEstimatedMinutes() != null ? task.getEstimatedMinutes() : 60; // По умолчанию 60 минут
+        this.durationMinutes = task.getEstimatedMinutes() != null ? task.getEstimatedMinutes() : 60;
     }
     
     public LocalDate getTaskDeadline() {

@@ -29,7 +29,7 @@ public class TaskPart implements TaskStep {
     private Integer durationMinutes;
     
     private TaskPart nextTaskPart;
-    
+
     public TaskPart() {
     }
     
@@ -47,16 +47,7 @@ public class TaskPart implements TaskStep {
         }
         return (TaskChain) step;
     }
-    
 
-    public String getTaskPartName() {
-        TaskChain chain = getTaskChain();
-        if (chain == null) {
-            return "Часть " + partIndex;
-        }
-        return chain.getTaskName() + " (часть " + partIndex + ")";
-    }
-    
 
     public LocalDate getTaskDeadline() {
         TaskChain chain = getTaskChain();

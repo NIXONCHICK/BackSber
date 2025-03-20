@@ -2,6 +2,7 @@ package back.controllers;
 
 import back.dto.TaskTimeEstimateResponse;
 import back.entities.Person;
+import back.services.EmailService;
 import back.services.OpenRouterService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +23,7 @@ import java.util.List;
 public class TaskTimeEstimateController {
 
     private final OpenRouterService openRouterService;
+    private final EmailService emailService;
     
     @GetMapping("/{taskId}")
     @PreAuthorize("isAuthenticated()")
@@ -43,14 +45,28 @@ public class TaskTimeEstimateController {
             log.info("Пользователь аутентифицирован: {}, роли: {}", auth.getName(), auth.getAuthorities());
             
             Long userId = null;
+            Person person = null;
             if (auth.getPrincipal() instanceof Person) {
-                userId = ((Person) auth.getPrincipal()).getId();
+                person = (Person) auth.getPrincipal();
+                userId = person.getId();
                 log.info("ID пользователя из Person: {}", userId);
             } else {
                 log.warn("Не удалось получить ID пользователя из Person: {}", auth.getPrincipal().getClass().getName());
             }
             
             TaskTimeEstimateResponse response = openRouterService.getTaskTimeEstimate(taskId, userId);
+            
+            // Отправляем электронное письмо с результатом
+            if (person != null && person.getEmail() != null) {
+                log.info("Отправка письма с оценкой времени на почту: {}", person.getEmail());
+                emailService.sendTaskTimeEstimateNotification(
+                    person.getEmail(),
+                    response.getTaskName(),
+                    response.getEstimatedMinutes(),
+                    response.getExplanation()
+                );
+            }
+            
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Ошибка при получении оценки времени для задания {}: {}", taskId, e.getMessage(), e);
@@ -59,19 +75,32 @@ public class TaskTimeEstimateController {
     }
     
     @PostMapping("/{taskId}/refresh")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<TaskTimeEstimateResponse> refreshTaskTimeEstimate(@PathVariable Long taskId) {
         try {
             log.info("Получен запрос на обновление оценки времени для задания {}", taskId);
             
             Long userId = null;
+            Person person = null;
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth != null && auth.getPrincipal() instanceof Person) {
-                userId = ((Person) auth.getPrincipal()).getId();
+                person = (Person) auth.getPrincipal();
+                userId = person.getId();
                 log.info("ID пользователя из Person для обновления: {}", userId);
             }
             
             TaskTimeEstimateResponse response = openRouterService.refreshTaskTimeEstimate(taskId, userId);
+            
+            // Отправляем электронное письмо с результатом
+            if (person != null && person.getEmail() != null) {
+                log.info("Отправка письма с обновленной оценкой времени на почту: {}", person.getEmail());
+                emailService.sendTaskTimeEstimateNotification(
+                    person.getEmail(),
+                    response.getTaskName(),
+                    response.getEstimatedMinutes(),
+                    response.getExplanation()
+                );
+            }
+            
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Ошибка при обновлении оценки времени для задания {}: {}", taskId, e.getMessage(), e);
@@ -86,10 +115,12 @@ public class TaskTimeEstimateController {
         try {
             log.info("Получен запрос на анализ заданий по семестру для даты: {}", date);
             
-            Long userId = null;
+            Long userId;
+            Person person;
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth != null && auth.getPrincipal() instanceof Person) {
-                userId = ((Person) auth.getPrincipal()).getId();
+                person = (Person) auth.getPrincipal();
+                userId = person.getId();
                 log.info("ID пользователя из Person для анализа по семестру: {}", userId);
             } else {
                 log.warn("Не удалось получить ID пользователя из Person для анализа по семестру");
@@ -97,10 +128,22 @@ public class TaskTimeEstimateController {
             }
             
             List<TaskTimeEstimateResponse> responses = openRouterService.analyzeTasksBySemester(date, userId);
+            
+            // Отправляем электронное письмо с результатом
+            if (person.getEmail() != null && !responses.isEmpty()) {
+                log.info("Отправка письма с анализом заданий по семестру на почту: {}", person.getEmail());
+                emailService.sendSemesterTasksAnalysisNotification(
+                    person.getEmail(),
+                    responses,
+                    date
+                );
+            }
+            
             return ResponseEntity.ok(responses);
         } catch (Exception e) {
             log.error("Ошибка при анализе заданий по семестру: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().build();
         }
     }
-} 
+
+}

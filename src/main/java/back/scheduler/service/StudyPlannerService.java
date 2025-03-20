@@ -31,7 +31,7 @@ public class StudyPlannerService {
     
     @Autowired
     private SolverManager<StudySchedule, Long> solverManager;
-    
+
 
     public StudyPlanResponse createStudyPlan(Person currentUser, LocalDate date) {
         log.info("Создание учебного плана для пользователя {} на семестр с датой {}", currentUser.getId(), date);
@@ -42,10 +42,10 @@ public class StudyPlannerService {
         int year = date.getYear();
         int month = date.getMonthValue();
         
-        if (month >= 9 && month <= 12) {
+        if (month >= 9) {
             semesterStart = LocalDate.of(year, 9, 1);
             semesterEnd = LocalDate.of(year, 12, 31);
-        } else if (month >= 1 && month <= 6) {
+        } else if (month <= 6) {
             semesterStart = LocalDate.of(year, 2, 1);
             semesterEnd = LocalDate.of(year, 6, 30);
         } else {
@@ -114,10 +114,7 @@ public class StudyPlannerService {
                     
                     if (task.getSubject() != null && task.getSubject().getSemesterDate() != null) {
                         LocalDate subjectSemesterDate = task.getSubject().getSemesterDate().toLocalDate();
-                        return subjectSemesterDate.getYear() == semesterStart.getYear() &&
-                               ((subjectSemesterDate.getMonthValue() >= 9 && semesterStart.getMonthValue() >= 9) ||
-                                (subjectSemesterDate.getMonthValue() >= 1 && subjectSemesterDate.getMonthValue() <= 6 &&
-                                 semesterStart.getMonthValue() >= 1 && semesterStart.getMonthValue() <= 6));
+                        return subjectSemesterDate.getYear() == semesterStart.getYear() && (subjectSemesterDate.getMonthValue() >= 9 && semesterStart.getMonthValue() >= 9 || subjectSemesterDate.getMonthValue() <= 6 && semesterStart.getMonthValue() <= 6);
                     }
                     
                     return false;
@@ -227,6 +224,9 @@ public class StudyPlannerService {
                 }
                 
                 String taskName = task.getName();
+                if (taskName != null && taskName.trim().endsWith("Задание")) {
+                    taskName = taskName.substring(0, taskName.length() - 7).trim();
+                }
                 if (part.getPartIndex() > 1) {
                     taskName += " (часть " + part.getPartIndex() + ")";
                 }

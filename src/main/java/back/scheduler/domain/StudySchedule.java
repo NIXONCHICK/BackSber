@@ -48,30 +48,5 @@ public class StudySchedule {
     
     public StudySchedule() {
     }
-    
-    public StudySchedule(Long id, LocalDate semesterStartDate, LocalDate semesterEndDate, 
-                        List<StudyDay> availableDays, List<Task> tasks, 
-                        List<TaskChain> taskChains, List<TaskPart> taskParts) {
-        this.id = id;
-        this.semesterStartDate = semesterStartDate;
-        this.semesterEndDate = semesterEndDate;
-        this.availableDays = availableDays;
-        this.tasks = tasks;
-        this.taskChains = taskChains;
-        this.taskParts = taskParts;
-        this.assignments = new ArrayList<>();
-    }
-    
-    public StudySchedule(Long id, LocalDate semesterStartDate, LocalDate semesterEndDate, 
-                         List<StudyDay> availableDays, List<Task> tasks, 
-                         List<StudyAssignment> assignments) {
-        this.id = id;
-        this.semesterStartDate = semesterStartDate;
-        this.semesterEndDate = semesterEndDate;
-        this.availableDays = availableDays;
-        this.tasks = tasks;
-        this.assignments = assignments;
-        this.taskChains = new ArrayList<>();
-        this.taskParts = new ArrayList<>();
-    }
-} 
+
+}

@@ -16,11 +16,8 @@ public class TaskTimeWarning {
     private int availableMinutes;
     private int daysUntilDeadline;
     private int recommendedDailyMinutes;
-    
-    public TaskTimeWarning() {
-    }
-    
-    public TaskTimeWarning(Task task, LocalDate deadline, int requiredMinutes, int availableMinutes, 
+
+    public TaskTimeWarning(Task task, LocalDate deadline, int requiredMinutes, int availableMinutes,
                           int daysUntilDeadline) {
         this.task = task;
         this.deadline = deadline;

@@ -1,7 +1,6 @@
 package back.scheduler.constraint;
 
 import back.scheduler.domain.StudyDay;
-import back.scheduler.domain.TaskChain;
 import back.scheduler.domain.TaskPart;
 import org.optaplanner.core.api.score.buildin.hardmediumsoft.HardMediumSoftScore;
 import org.optaplanner.core.api.score.stream.Constraint;
@@ -15,9 +14,7 @@ import java.time.temporal.ChronoUnit;
 import static org.optaplanner.core.api.score.stream.ConstraintCollectors.count;
 import static org.optaplanner.core.api.score.stream.ConstraintCollectors.sum;
 
-/**
- * Провайдер ограничений для планирования частей заданий с последовательным выполнением
- */
+
 public class TaskPartConstraintProvider implements ConstraintProvider {
 
     @Override
@@ -62,7 +59,7 @@ public class TaskPartConstraintProvider implements ConstraintProvider {
                  Joiners.lessThan(TaskPart::getPartIndex))
             .filter((part1, part2) -> part1.getAssignedDay() != null && part2.getAssignedDay() != null)
             .filter((part1, part2) -> !part1.getAssignedDay().getDate().isAfter(part2.getAssignedDay().getDate()))
-            .penalize(HardMediumSoftScore.ONE_HARD, (part1, part2) -> 10000) // Значительно усиливаем штраф
+            .penalize(HardMediumSoftScore.ONE_HARD, (part1, part2) -> 10000)
             .asConstraint("Нарушение последовательности частей задания");
     }
     
@@ -88,7 +85,7 @@ public class TaskPartConstraintProvider implements ConstraintProvider {
     private Constraint maxDailyStudyTimeHardConstraint(ConstraintFactory constraintFactory) {
         return constraintFactory.forEach(TaskPart.class)
             .groupBy(TaskPart::getAssignedDay, sum(TaskPart::getDurationMinutes))
-            .filter((day, totalMinutes) -> day != null && totalMinutes > 300) // Абсолютный лимит 5 часов
+            .filter((day, totalMinutes) -> day != null && totalMinutes > 300)
             .penalize(HardMediumSoftScore.ONE_HARD, (day, totalMinutes) -> (totalMinutes - 300) * 1000)
             .asConstraint("Превышение абсолютного максимума ежедневного времени учебы");
     }
@@ -126,7 +123,7 @@ public class TaskPartConstraintProvider implements ConstraintProvider {
             .groupBy(TaskPart::getAssignedDay, sum(TaskPart::getDurationMinutes))
             .filter((day, totalMinutes) -> day != null)
             .penalize(HardMediumSoftScore.ONE_MEDIUM, (day, totalMinutes) -> {
-                return (int) Math.pow(Math.abs(totalMinutes - 180), 2) / 8; // Увеличен штраф
+                return (int) Math.pow(Math.abs(totalMinutes - 180), 2) / 8;
             })
             .asConstraint("Равномерное распределение заданий");
     }
@@ -142,7 +139,7 @@ public class TaskPartConstraintProvider implements ConstraintProvider {
     private Constraint mediumDailyStudyTimeConstraint(ConstraintFactory constraintFactory) {
         return constraintFactory.forEach(TaskPart.class)
             .groupBy(TaskPart::getAssignedDay, sum(TaskPart::getDurationMinutes))
-            .filter((day, totalMinutes) -> day != null && totalMinutes > 240) // 4 часа
+            .filter((day, totalMinutes) -> day != null && totalMinutes > 240)
             .penalize(HardMediumSoftScore.ONE_MEDIUM, (day, totalMinutes) -> (totalMinutes - 240) * 30)
             .asConstraint("Превышение среднего лимита ежедневного времени учебы");
     }
@@ -159,7 +156,6 @@ public class TaskPartConstraintProvider implements ConstraintProvider {
             .asConstraint("Приоритет заданиям с ранними дедлайнами");
     }
     
-    // Мягкое ограничение: стараться не превышать 180 минут в день, но это допустимо
     private Constraint maxDailyStudyTimeConstraint(ConstraintFactory constraintFactory) {
         return constraintFactory.forEach(TaskPart.class)
             .groupBy(TaskPart::getAssignedDay, sum(TaskPart::getDurationMinutes))
@@ -215,8 +211,8 @@ public class TaskPartConstraintProvider implements ConstraintProvider {
                     part.getTaskChain().getTask() != null &&
                     part.getTaskChain().getTask().getSubject() != null)
             .join(TaskPart.class,
-                  Joiners.equal(part -> part.getAssignedDay()),
-                  Joiners.lessThan(part -> part.getId()))
+                  Joiners.equal(TaskPart::getAssignedDay),
+                  Joiners.lessThan(TaskPart::getId))
             .filter((part1, part2) -> 
                 part1.getTaskChain().getTask().getSubject() != null && 
                 part2.getTaskChain().getTask().getSubject() != null &&
@@ -229,9 +225,9 @@ public class TaskPartConstraintProvider implements ConstraintProvider {
     private Constraint preventTaskPartsOnSameDay(ConstraintFactory constraintFactory) {
         return constraintFactory.forEach(TaskPart.class)
             .join(TaskPart.class,
-                  Joiners.equal(part -> part.getAssignedDay()),
-                  Joiners.equal(part -> part.getTaskChain()),
-                  Joiners.lessThan(part -> part.getId()))
+                  Joiners.equal(TaskPart::getAssignedDay),
+                  Joiners.equal(TaskPart::getTaskChain),
+                  Joiners.lessThan(TaskPart::getId))
             .penalize(HardMediumSoftScore.ONE_HARD, (part1, part2) -> 2000)
             .asConstraint("Несколько частей одной задачи в один день");
     }

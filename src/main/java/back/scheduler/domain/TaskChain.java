@@ -21,10 +21,7 @@ public class TaskChain implements TaskStep {
     private Integer minDailyDurationMinutes = 30;
     
     private Integer maxDailyDurationMinutes = 180;
-    
-    public TaskChain() {
-    }
-    
+
     public TaskChain(Long id, Task task) {
         this.id = id;
         this.task = task;

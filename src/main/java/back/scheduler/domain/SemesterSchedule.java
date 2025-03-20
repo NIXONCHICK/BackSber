@@ -35,7 +35,7 @@ public class SemesterSchedule {
     public SemesterSchedule() {
     }
 
-    public SemesterSchedule(LocalDate semesterStart, LocalDate semesterEnd, Long userId, 
+    public SemesterSchedule(LocalDate semesterStart, LocalDate semesterEnd, Long userId,
                           List<SemesterAssignment> assignments) {
         this.semesterStart = semesterStart;
         this.semesterEnd = semesterEnd;
