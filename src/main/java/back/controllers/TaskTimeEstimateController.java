@@ -2,8 +2,11 @@ package back.controllers;
 
 import back.dto.TaskTimeEstimateResponse;
 import back.entities.Person;
+import back.entities.Task;
 import back.services.EmailService;
 import back.services.OpenRouterService;
+import back.services.StudyPlanService;
+import back.dto.StudyPlanResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -15,6 +18,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
 import java.util.List;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import org.springframework.http.HttpStatus;
 
 @RestController
 @RequestMapping("/api/tasks/time-estimate")
@@ -24,6 +30,7 @@ public class TaskTimeEstimateController {
 
     private final OpenRouterService openRouterService;
     private final EmailService emailService;
+    private final StudyPlanService studyPlanService;
     
     @GetMapping("/{taskId}")
     @PreAuthorize("isAuthenticated()")
@@ -143,6 +150,88 @@ public class TaskTimeEstimateController {
         } catch (Exception e) {
             log.error("Ошибка при анализе заданий по семестру: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/study-plan/semester")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<StudyPlanResponse> getStudyPlanForSemester(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.util.Date requestDate) {
+        try {
+            log.info("Получен запрос на генерацию учебного плана по семестру для даты: {}", requestDate);
+
+            Long userId;
+            Person person;
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getPrincipal() instanceof Person) {
+                person = (Person) auth.getPrincipal();
+                userId = person.getId();
+                log.info("ID пользователя из Person для генерации плана: {}", userId);
+            } else {
+                log.warn("Не удалось получить ID пользователя из Person для генерации плана");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+
+            LocalDate localRequestDate = requestDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+            java.sql.Date semesterSqlDate = openRouterService.determineSemesterDate(localRequestDate);
+            LocalDate semesterStartDate = semesterSqlDate.toLocalDate();
+
+            List<Task> tasks = openRouterService.findTasksForUserBySemesterWithSource(userId, semesterSqlDate);
+            log.info("Найдено {} задач для пользователя {} в семестре с датой начала {}", tasks.size(), userId, semesterStartDate);
+
+            // План всегда начинается с даты начала семестра
+            LocalDate planStartDate = semesterStartDate;
+
+            StudyPlanResponse studyPlan = studyPlanService.generateStudyPlan(tasks, semesterStartDate, planStartDate);
+
+            if (person.getEmail() != null && studyPlan != null && !studyPlan.getPlannedDays().isEmpty()) {
+                 log.info("Отправка письма с учебным планом на почту: {}", person.getEmail());
+                 emailService.sendStudyPlanNotification(person.getEmail(), studyPlan, semesterStartDate);
+            }
+
+            return ResponseEntity.ok(studyPlan);
+
+        } catch (Exception e) {
+            log.error("Ошибка при генерации учебного плана по семестру: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
+    }
+
+    @PostMapping("/semester/refresh")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<TaskTimeEstimateResponse>> refreshTasksBySemester(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date date) {
+        try {
+            log.info("Получен запрос на ПРИНУДИТЕЛЬНОЕ обновление заданий по семестру для даты: {}", date);
+            
+            Long userId;
+            Person person;
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getPrincipal() instanceof Person) {
+                person = (Person) auth.getPrincipal();
+                userId = person.getId();
+                log.info("ID пользователя из Person для принудительного обновления по семестру: {}", userId);
+            } else {
+                log.warn("Не удалось получить ID пользователя из Person для принудительного обновления по семестру");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+            
+            List<TaskTimeEstimateResponse> responses = openRouterService.refreshTaskEstimatesBySemester(date, userId);
+            
+            // Отправляем электронное письмо с результатом
+            if (person.getEmail() != null && !responses.isEmpty()) {
+                log.info("Отправка письма с результатами принудительного обновления заданий по семестру на почту: {}", person.getEmail());
+                emailService.sendSemesterTasksAnalysisNotification(
+                    person.getEmail(),
+                    responses,
+                    date
+                );
+            }
+            
+            return ResponseEntity.ok(responses);
+        } catch (Exception e) {
+            log.error("Ошибка при принудительном обновлении заданий по семестру: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
 

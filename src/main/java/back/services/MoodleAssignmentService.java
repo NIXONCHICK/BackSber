@@ -58,6 +58,11 @@ public class MoodleAssignmentService {
             StringBuilder allText = new StringBuilder();
             int totalTokens = 0;
 
+            if (task.getSubject() != null) {
+                allText.append("===== ПРЕДМЕТ =====\\n\\n");
+                allText.append(task.getSubject().getName()).append("\\n\\n");
+            }
+
             if (task.getDescription() != null && !task.getDescription().isEmpty()) {
                 log.info("Анализируем описание задания");
                 int descriptionTokens = textProcessingService.countTokens(task.getDescription());
@@ -216,11 +221,21 @@ public class MoodleAssignmentService {
                 throw new IOException("Не удалось скачать файл, код: " + responseCode);
             }
 
-            String fileName = cleanUrl.substring(cleanUrl.lastIndexOf("/") + 1);
-            fileName = fileName.replaceAll("[^a-zA-Z0-9_.-]", "_");
+            String originalFileName = cleanUrl.substring(cleanUrl.lastIndexOf("/") + 1);
+            String fileExtension = "";
+            int lastDot = originalFileName.lastIndexOf('.');
+            if (lastDot > 0 && lastDot < originalFileName.length() - 1) {
+                fileExtension = originalFileName.substring(lastDot);
+            } else {
+                fileExtension = ".tmp";
+            }
+            fileExtension = fileExtension.replaceAll("[^a-zA-Z0-9.]", "").replaceAll("\\.{2,}", ".");
+            if (fileExtension.isEmpty() || !fileExtension.startsWith(".")) {
+                 fileExtension = ".tmp";
+            }
 
-            File tempFile = Files.createTempFile("moodle_", "_" + fileName).toFile();
-            log.info("Скачиваем файл из {} в {}", fileUrl, tempFile.getAbsolutePath());
+            File tempFile = Files.createTempFile("moodle_dl_", fileExtension).toFile();
+            log.info("Скачиваем файл (оригинальное имя: {}), сохраняем во временный файл: {}", originalFileName, tempFile.getAbsolutePath());
 
             try (InputStream in = conn.getInputStream();
                  FileOutputStream out = new FileOutputStream(tempFile)) {
@@ -232,7 +247,7 @@ public class MoodleAssignmentService {
                 }
             }
 
-            log.info("Файл успешно скачан: {}, размер: {} байт", fileName, tempFile.length());
+            log.info("Файл успешно скачан (оригинальное имя: {}), временный файл: {}, размер: {} байт", originalFileName, tempFile.getName(), tempFile.length());
             return tempFile;
         } catch (Exception e) {
             log.error("Ошибка при скачивании файла {}: {}", fileUrl, e.getMessage());

@@ -30,14 +30,26 @@ public class OpenRouterService {
     private final MoodleAssignmentService moodleAssignmentService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    // OpenRouter Configuration
     @Value("${openrouter.api.key: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}")
-    private String apiKey;
+    private String openRouterApiKey;
 
     @Value("${openrouter.api.url:https://openrouter.ai/api/v1/chat/completions}")
-    private String apiUrl;
+    private String openRouterApiUrl;
 
-    @Value("${openrouter.model:deepseek/deepseek-chat:free}")
-    private String model;
+    @Value("${openrouter.model:deepseek/deepseek-chat-v3-0324:free}")
+    private String openRouterModel;
+
+    // Gemini API Configuration
+    @Value("${gemini.api.key}")
+    private String geminiApiKey;
+
+    @Value("${gemini.model.name:gemini-2.0-flash-lite-001}")
+    private String geminiModelName;
+
+    @Value("${gemini.api.base.url:https://generativelanguage.googleapis.com/v1beta/models}")
+    private String geminiApiBaseUrl;
+
 
     @Value("${app.name:ИКТИБ Платформа}")
     private String appName;
@@ -63,20 +75,20 @@ public class OpenRouterService {
                     .build();
         }
 
-        log.info("Оценка времени не найдена в базе данных, запрашиваем у OpenRouter API");
+        log.info("Оценка времени не найдена в базе данных, запрашиваем у Gemini API");
         String context = getTaskContext(task, userId);
-        OpenRouterResponse openRouterResponse = askOpenRouterForTimeEstimate(context, task.getName());
+        OpenRouterResponse geminiResponse = askGeminiForTimeEstimate(context, task.getName());
 
-        task.setEstimatedMinutes(openRouterResponse.getEstimatedMinutes());
-        task.setTimeEstimateExplanation(openRouterResponse.getExplanation());
+        task.setEstimatedMinutes(geminiResponse.getEstimatedMinutes());
+        task.setTimeEstimateExplanation(geminiResponse.getExplanation());
         task.setTimeEstimateCreatedAt(new Date());
         taskRepository.save(task);
 
         return TaskTimeEstimateResponse.builder()
                 .taskId(task.getId())
                 .taskName(task.getName())
-                .estimatedMinutes(openRouterResponse.getEstimatedMinutes())
-                .explanation(openRouterResponse.getExplanation())
+                .estimatedMinutes(geminiResponse.getEstimatedMinutes())
+                .explanation(geminiResponse.getExplanation())
                 .createdAt(task.getTimeEstimateCreatedAt())
                 .fromCache(false)
                 .build();
@@ -88,18 +100,18 @@ public class OpenRouterService {
                 .orElseThrow(() -> new RuntimeException("Задание не найдено"));
 
         String context = getTaskContext(task, userId);
-        OpenRouterResponse openRouterResponse = askOpenRouterForTimeEstimate(context, task.getName());
+        OpenRouterResponse geminiResponse = askGeminiForTimeEstimate(context, task.getName());
 
-        task.setEstimatedMinutes(openRouterResponse.getEstimatedMinutes());
-        task.setTimeEstimateExplanation(openRouterResponse.getExplanation());
+        task.setEstimatedMinutes(geminiResponse.getEstimatedMinutes());
+        task.setTimeEstimateExplanation(geminiResponse.getExplanation());
         task.setTimeEstimateCreatedAt(new Date());
         taskRepository.save(task);
 
         return TaskTimeEstimateResponse.builder()
                 .taskId(task.getId())
                 .taskName(task.getName())
-                .estimatedMinutes(openRouterResponse.getEstimatedMinutes())
-                .explanation(openRouterResponse.getExplanation())
+                .estimatedMinutes(geminiResponse.getEstimatedMinutes())
+                .explanation(geminiResponse.getExplanation())
                 .createdAt(task.getTimeEstimateCreatedAt())
                 .fromCache(false)
                 .build();
@@ -147,75 +159,53 @@ public class OpenRouterService {
     }
 
 
-    private OpenRouterResponse askOpenRouterForTimeEstimate(String context, String taskName) {
+    private OpenRouterResponse askGeminiForTimeEstimate(String contextText, String taskName) {
         try {
             RestTemplate restTemplate = new RestTemplate();
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setBearerAuth(apiKey);
-            headers.set("HTTP-Referer", appUrl);
-            headers.set("X-Title", appName);
 
             taskName = (taskName != null && !taskName.isEmpty()) ? taskName : "Задание";
+            log.info("Отправляем запрос Gemini API с контекстом размером {} символов для задания: '{}'", contextText.length(), taskName);
 
-            log.info("Отправляем запрос с контекстом размером {} символов для задания: '{}'", context.length(), taskName);
+            // Формируем единый промпт для Gemini
+            String prompt = "Ты эксперт по оценке сложности и времени выполнения учебных заданий для студентов ИКТИБ ЮФУ. " +
+                    "Твоя задача - внимательно проанализировать СОДЕРЖАНИЕ задания (НЕ название) и оценить примерное время его выполнения в минутах. " +
+                    "Учитывай следующие факторы: сложность работы (программирование, отчет, расчеты и т.д.), объем требований, " +
+                    "количество и тип прикрепленных файлов (если есть информация о них), необходимость создания кода, схем, отчетов, " +
+                    "время на изучение теории перед практикой, и время на оформление отчета (30-50% от общего времени). " +
+                    "Ответ дай СТРОГО в формате JSON с двумя полями: \"estimatedMinutes\" (целое число минут) и \"explanation\" (краткое объяснение оценки на русском языке). " +
+                    "В поле \"explanation\" используй дружелюбный, неформальный тон, обращайся к студенту на 'ты', гендерно-нейтрально. " +
+                    "В начале объяснения ОБЯЗАТЕЛЬНО укажи предполагаемый уровень сложности (например: 'Это довольно простое задание', 'Задание средней сложности', 'Задание повышенной сложности'). " +
+                    "В объяснении опиши, ЧТО включает в себя задание (основные этапы: теория, практика, отчет), но НЕ указывай время для каждого этапа или общее время (оно уже есть в estimatedMinutes). " +
+                    "Пример JSON: {\\\"estimatedMinutes\\\": 120, \\\"explanation\\\": \\\"Это задание средней сложности. Тебе предстоит изучить теорию, затем выполнить практическую часть и подготовить отчет.\\\"} " +
+                    "ПОДРОБНОЕ СОДЕРЖАНИЕ ЗАДАНИЯ (самое важное):\\n\\n" + contextText + "\\n\\n" +
+                    "Название (не главное): " + taskName + "\\n\\n" +
+                    "Оцени реальное время выполнения, учитывая изучение теории, практику и оформление отчета. Дай реалистичную оценку для среднего студента. " +
+                    "ВАЖНО: Предыдущие оценки часто оказывались заниженными. Пожалуйста, подойди к оценке более тщательно и дай более щедрую (консервативную) оценку. " +
+                    "Обязательно учти, что студенты могут столкнуться с непредвиденными сложностями, потратить дополнительное время на более глубокое изучение отдельных аспектов темы, " +
+                    "на отладку практической части, а также на очень тщательное оформление финального отчета со всеми необходимыми элементами (введение, основная часть, детальные расчеты/описание кода, графики, таблицы, выводы, список литературы и т.д.), особенно если студент нацелен на высокую оценку. " +
+                    "Помни, что полное понимание задачи, планирование, все этапы непосредственного выполнения (включая возможное написание кода, расчеты, создание схем) и, повторюсь, качественное оформление отчета требуют значительного времени, которое не стоит недооценивать. " +
+                    "Помни, что средний студент не является экспертом, может впервые сталкиваться с некоторыми технологиями или методами, и ему потребуется время на 'раскачку' и преодоление кривой обучения. " +
+                    "Настоятельно рекомендую закладывать некоторый буфер времени на непредвиденные обстоятельства, возможные ошибки в понимании требований, необходимость переделок и консультаций. Оценка должна это отражать. " +
+                    "Не забывай, что оценка должна покрывать ВЕСЬ цикл работы: от момента получения задания и первого прочтения до полной сдачи готовой работы, включая все итерации правок и доработок, если таковые потребуются для достижения высокой оценки. " +
+                    "Твоя цель – дать максимально безопасную и реалистичную оценку, которая поможет студенту реально спланировать свое время, а не создать ложное впечатление, что все можно сделать очень быстро. Лучше немного переоценить, чем сильно недооценить.";
 
-            String systemPrompt = "Ты эксперт по оценке сложности и времени выполнения учебных заданий для студентов. " +
-                    "Твоя задача - внимательно прочитать описание задания и все прикрепленные файлы, а затем " +
-                    "оценить примерное время выполнения задания в минутах. " +
-                    "ВАЖНО: НЕ оценивай время по названию задания - оно может быть неинформативным. " +
-                    "Учитывай все детали из содержания задания и прикрепленных файлов. " +
-                    "Обрати особое внимание на следующие факторы:\n" +
-                    "1. Сложность требуемой работы (программирование, отчет, расчеты и т.д.)\n" +
-                    "2. Объем и детализацию описания и требований\n" +
-                    "3. Количество и тип прикрепленных файлов\n" +
-                    "4. Необходимость создания кода, схем, отчетов\n" +
-                    "5. ОБЯЗАТЕЛЬНО учитывай время, которое потребуется на изучение теоретического материала перед выполнением практической части\n" +
-                    "6. ОБЯЗАТЕЛЬНО учитывай время, необходимое для оформления отчета по заданию (включая написание текста, оформление таблиц, графиков, схем, код, выводы и т.д.)\n" +
-                    "Помни, что студенты обычно последовательно проходят следующие этапы:\n" +
-                    "- Изучение теоретических материалов и требований к заданию (часто требует значительного времени)\n" +
-                    "- Выполнение практической части задания\n" +
-                    "- Оформление отчета (часто занимает 30-50% от общего времени выполнения)\n" +
-                    "Учитывай, что задания предназначены для студентов технических специальностей ИКТИБ ЮФУ. " +
-                    "Ответ дай в формате JSON с полями: estimatedMinutes (целое число минут) и " +
-                    "explanation (краткое объяснение твоей оценки на русском языке).\n\n" +
-                    "ОЧЕНЬ ВАЖНО: В поле explanation используй дружелюбный, неформальный тон, обращайся к студенту на 'ты', " +
-                    "будто объясняешь своему другу. Используй простой разговорный стиль, без излишнего формализма. " +
-                    "При этом ВАЖНО: используй гендерно-нейтральные формулировки, которые не указывают на пол студента. " +
-                    "Избегай форм глаголов и прилагательных в прошедшем времени, которые выявляют пол. " +
-                    "Используй инфинитивы, настоящее и будущее время, обобщенные формулировки." +
-                    "ВАЖНО: в поле explanation опиши только, ЧТО включает в себя задание (основные этапы работы), " +
-                    "но НЕ указывай конкретное время для каждого этапа или для всего задания. Оценка времени уже есть в поле estimatedMinutes." +
-                    "ОБЯЗАТЕЛЬНО в начале объяснения укажи уровень сложности задания (например: 'Это лёгкое/среднее/сложное задание', " +
-                    "'Задание средней сложности', 'Это довольно простое задание', 'Задание повышенной сложности' и т.п.). " +
-                    "Оценивай сложность по шкале: очень лёгкое, лёгкое, среднее, выше среднего, сложное, очень сложное.";
+            Map<String, Object> part = new HashMap<>();
+            part.put("text", prompt);
 
-            String userPrompt = "Внимательно проанализируй следующее задание.\n\n" +
-                    "Название (не главное): " + taskName + "\n\n" +
-                    "ПОДРОБНОЕ СОДЕРЖАНИЕ ЗАДАНИЯ (самое важное):\n\n" + context + "\n\n" +
-                    "На основе СОДЕРЖАНИЯ (а не названия) оцени реальное время выполнения этого задания в минутах.\n\n" +
-                    "В оценке ОБЯЗАТЕЛЬНО учти:\n" +
-                    "1. Время на изучение теоретического материала перед практической работой\n" +
-                    "2. Время на оформление подробного отчета о проделанной работе\n" +
-                    "3. Время на отладку и исправление ошибок\n" +
-                    "Давай максимально реалистичную оценку с точки зрения среднего студента.\n\n" +
-                    "В объяснении обязательно используй дружелюбный тон, обращайся на 'ты'. " +
-                    "Пиши словно помогаешь другу оценить задание. Очень важно: используй гендерно-нейтральные формулировки, не указывай на пол студента - " +
-                    "не используй формы типа 'сделал/сделала', 'мог бы/могла бы', а используй конструкции без указания пола: 'можно сделать', 'стоит изучить', 'тебе понадобится', 'нужно будет'. " +
-                    "ВАЖНО: в объяснении опиши только, что включает в себя задание (теория, практика, отчет и т.д.), но НЕ указывай время выполнения для каждого этапа или для всего задания. Например, вместо 'На изучение теории уйдет 1 час' напиши 'Задание включает изучение теоретического материала'." +
-                    "ОБЯЗАТЕЛЬНО: в начале объяснения укажи уровень сложности задания (легкое, среднее, сложное и т.д.).";
+            Map<String, Object> content = new HashMap<>();
+            content.put("parts", List.of(part));
+
+            Map<String, Object> generationConfig = new HashMap<>();
+            generationConfig.put("temperature", 0.0);
+            generationConfig.put("responseMimeType", "application/json");
 
             Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("model", model);
-            requestBody.put("temperature", 0.0);
-            List<Map<String, String>> messages = List.of(
-                    Map.of("role", "system", "content", systemPrompt),
-                    Map.of("role", "user", "content", userPrompt)
-            );
+            requestBody.put("contents", List.of(content));
+            requestBody.put("generationConfig", generationConfig);
 
-            requestBody.put("messages", messages);
-
-            log.info("Отправляем запрос к OpenRouter API для оценки времени выполнения задания: {}", taskName);
+            String apiUrl = String.format("%s/%s:generateContent?key=%s", geminiApiBaseUrl, geminiModelName, geminiApiKey);
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
             try {
@@ -223,76 +213,111 @@ public class OpenRouterService {
 
                 if (response.getStatusCode() == HttpStatus.OK) {
                     String responseBody = response.getBody();
-                    log.debug("Получен ответ от OpenRouter API: {}", responseBody);
+                    log.debug("Получен ответ от Gemini API: {}", responseBody);
                     JsonNode rootNode = objectMapper.readTree(responseBody);
-                    String content = rootNode.path("choices").get(0).path("message").path("content").asText();
 
-                    OpenRouterResponse openRouterResponse = parseOpenRouterResponse(content);
-                    log.info("OpenRouter API оценил время выполнения задания '{}' в {} минут, объяснение: {}",
-                            taskName, openRouterResponse.getEstimatedMinutes(), openRouterResponse.getExplanation());
-                    return openRouterResponse;
+                    JsonNode candidatesNode = rootNode.path("candidates");
+                    if (candidatesNode.isMissingNode() || !candidatesNode.isArray() || candidatesNode.isEmpty()) {
+                        log.error("Gemini API вернул ответ без валидного поля 'candidates': {}", responseBody);
+                        JsonNode promptFeedbackNode = rootNode.path("promptFeedback");
+                        if (!promptFeedbackNode.isMissingNode() && promptFeedbackNode.path("blockReason").isTextual()) {
+                             String blockReason = promptFeedbackNode.path("blockReason").asText();
+                             String safetyRatings = promptFeedbackNode.path("safetyRatings").toString();
+                             log.error("Промпт Gemini заблокирован. Причина: {}, Рейтинги безопасности: {}", blockReason, safetyRatings);
+                             throw new RuntimeException("Запрос к Gemini API заблокирован из-за содержимого промпта. Причина: " + blockReason);
+                        }
+                        throw new RuntimeException("Gemini API вернул неверный формат ответа (отсутствует 'candidates').");
+                    }
+
+                    String jsonResponseText = candidatesNode.get(0).path("content").path("parts").get(0).path("text").asText();
+                    if (jsonResponseText.isEmpty()) {
+                         log.error("Gemini API вернул пустой текст в content.parts[0].text: {}", responseBody);
+                         throw new RuntimeException("Gemini API вернул пустой ответ в ожидаемом поле.");
+                    }
+                    
+                    OpenRouterResponse geminiJsonResponse = parseOpenRouterResponse(jsonResponseText);
+                    log.info("Gemini API оценил время выполнения задания '{}' в {} минут, объяснение: {}",
+                            taskName, geminiJsonResponse.getEstimatedMinutes(), geminiJsonResponse.getExplanation());
+                    return geminiJsonResponse;
                 } else {
-                    log.error("Ошибка при запросе к OpenRouter API: {}", response.getStatusCode());
-                    throw new RuntimeException("Ошибка при запросе к OpenRouter API: " + response.getStatusCode());
+                    log.error("Ошибка при запросе к Gemini API: {}. Ответ: {}", response.getStatusCode(), response.getBody());
+                    throw new RuntimeException("Ошибка при запросе к Gemini API: " + response.getStatusCode() + " " + response.getBody());
                 }
             } catch (Exception e) {
-                if (context.length() > 20000) {
-                    log.warn("Произошла ошибка при обработке полного контекста: {}. Пробуем отправить сокращенный контекст.", e.getMessage());
+                // Уточненная логика сокращения контекста для Gemini
+                boolean shouldRetryWithShortenedContext = contextText.length() > 20000 && 
+                                                        (e.getMessage().toLowerCase().contains("заблокирован") || 
+                                                         e.getMessage().toLowerCase().contains("размер запроса превышает лимит")); // Пример более общих условий
 
-                    String shortenedContext;
+                if (shouldRetryWithShortenedContext) {
+                     log.warn("Произошла ошибка при обработке полного контекста Gemini: {}. Пробуем отправить сокращенный контекст.", e.getMessage());
+                    String shortenedContextText = contextText.substring(0, 10000) +
+                            "\\n\\n... [текст сокращен из-за ограничений API/модели, пропущено " +
+                            (contextText.length() - 20000) + " символов] ...\\n\\n" +
+                            contextText.substring(contextText.length() - 10000);
+                    
+                    String shortenedPrompt = "Ты эксперт по оценке сложности и времени выполнения учебных заданий для студентов ИКТИБ ЮФУ. " +
+                        "Твоя задача - внимательно проанализировать СОДЕРЖАНИЕ задания (НЕ название) и оценить примерное время его выполнения в минутах. " +
+                        "Учитывай следующие факторы: сложность работы (программирование, отчет, расчеты и т.д.), объем требований, " +
+                        "количество и тип прикрепленных файлов (если есть информация о них), необходимость создания кода, схем, отчетов, " +
+                        "время на изучение теории перед практикой, и время на оформление отчета (30-50% от общего времени). " +
+                        "Ответ дай СТРОГО в формате JSON с двумя полями: \"estimatedMinutes\" (целое число минут) и \"explanation\" (краткое объяснение оценки на русском языке). " +
+                        "В поле \"explanation\" используй дружелюбный, неформальный тон, обращайся к студенту на 'ты', гендерно-нейтрально. " +
+                        "В начале объяснения ОБЯЗАТЕЛЬНО укажи предполагаемый уровень сложности (например: 'Это довольно простое задание', 'Задание средней сложности', 'Задание повышенной сложности'). " +
+                        "В объяснении опиши, ЧТО включает в себя задание (основные этапы: теория, практика, отчет), но НЕ указывай время для каждого этапа или общее время (оно уже есть в estimatedMinutes). " +
+                        "Пример JSON: {\\\"estimatedMinutes\\\": 120, \\\"explanation\\\": \\\"Это задание средней сложности. Тебе предстоит изучить теорию, затем выполнить практическую часть и подготовить отчет.\\\"} " +
+                        "ПОДРОБНОЕ СОДЕРЖАНИЕ ЗАДАНИЯ (самое важное):\\n\\n" + shortenedContextText + "\\n\\n" +
+                        "Название (не главное): " + taskName + "\\n\\n" +
+                        "Оцени реальное время выполнения, учитывая изучение теории, практику и оформление отчета. Дай реалистичную оценку для среднего студента. " +
+                        "ВАЖНО: Предыдущие оценки часто оказывались заниженными. Пожалуйста, подойди к оценке более тщательно и дай более щедрую (консервативную) оценку. " +
+                        "Обязательно учти, что студенты могут столкнуться с непредвиденными сложностями, потратить дополнительное время на более глубокое изучение отдельных аспектов темы, " +
+                        "на отладку практической части, а также на очень тщательное оформление финального отчета со всеми необходимыми элементами (введение, основная часть, детальные расчеты/описание кода, графики, таблицы, выводы, список литературы и т.д.), особенно если студент нацелен на высокую оценку. " +
+                        "Помни, что полное понимание задачи, планирование, все этапы непосредственного выполнения (включая возможное написание кода, расчеты, создание схем) и, повторюсь, качественное оформление отчета требуют значительного времени, которое не стоит недооценивать. " +
+                        "Помни, что средний студент не является экспертом, может впервые сталкиваться с некоторыми технологиями или методами, и ему потребуется время на 'раскачку' и преодоление кривой обучения. " +
+                        "Настоятельно рекомендую закладывать некоторый буфер времени на непредвиденные обстоятельства, возможные ошибки в понимании требований, необходимость переделок и консультаций. Оценка должна это отражать. " +
+                        "Не забывай, что оценка должна покрывать ВЕСЬ цикл работы: от момента получения задания и первого прочтения до полной сдачи готовой работы, включая все итерации правок и доработок, если таковые потребуются для достижения высокой оценки. " +
+                        "Твоя цель – дать максимально безопасную и реалистичную оценку, которая поможет студенту реально спланировать свое время, а не создать ложное впечатление, что все можно сделать очень быстро. Лучше немного переоценить, чем сильно недооценить.";
 
-                    shortenedContext = context.substring(0, 10000) +
-                            "\n\n... [текст сокращен из-за ограничений API, пропущено " +
-                            (context.length() - 20000) + " символов] ...\n\n" +
-                            context.substring(context.length() - 10000);
+                    Map<String, Object> shortenedPart = new HashMap<>();
+                    shortenedPart.put("text", shortenedPrompt);
+                    Map<String, Object> shortenedContent = new HashMap<>();
+                    shortenedContent.put("parts", List.of(shortenedPart));
+                    
+                    // Обновляем только 'contents' в существующем requestBody для повторного запроса
+                    Map<String, Object> newRequestBodyForShortened = new HashMap<>(requestBody); // Копируем исходный requestBody
+                    newRequestBodyForShortened.put("contents", List.of(shortenedContent)); 
 
-                    String shortenedUserPrompt = "Внимательно проанализируй следующее задание.\n\n" +
-                            "Название (не главное): " + taskName + "\n\n" +
-                            "ПОДРОБНОЕ СОДЕРЖАНИЕ ЗАДАНИЯ (самое важное):\n\n" + shortenedContext + "\n\n" +
-                            "На основе СОДЕРЖАНИЯ (а не названия) оцени реальное время выполнения этого задания в минутах.\n\n" +
-                            "В оценке ОБЯЗАТЕЛЬНО учти:\n" +
-                            "1. Время на изучение теоретического материала перед практической работой\n" +
-                            "2. Время на оформление подробного отчета о проделанной работе\n" +
-                            "3. Время на отладку и исправление ошибок\n" +
-                            "Давай максимально реалистичную оценку с точки зрения среднего студента.\n\n" +
-                            "В объяснении обязательно используй дружелюбный тон, обращайся на 'ты', используй фразы типа 'смотри', 'тебе понадобится', 'советую', 'можно успеть', 'не переживай'. " +
-                            "Пиши словно помогаешь другу оценить задание. Очень важно: используй гендерно-нейтральные формулировки, не указывай на пол студента - " +
-                            "не используй формы типа 'сделал/сделала', 'мог бы/могла бы', а используй конструкции без указания пола: 'можно сделать', 'стоит изучить', 'тебе понадобится', 'нужно будет'. " +
-                            "ВАЖНО: в объяснении опиши только, что включает в себя задание (теория, практика, отчет и т.д.), но НЕ указывай время выполнения для каждого этапа или для всего задания. Например, вместо 'На изучение теории уйдет 1 час' напиши 'Задание включает изучение теоретического материала'." +
-                            "ОБЯЗАТЕЛЬНО: в начале объяснения укажи уровень сложности задания (легкое, среднее, сложное и т.д.).";
+                    HttpEntity<Map<String, Object>> shortenedEntity = new HttpEntity<>(newRequestBodyForShortened, headers);
+                    log.info("Повторная попытка Gemini API с сокращенным контекстом размером {} символов", shortenedContextText.length());
+                    ResponseEntity<String> shortenedResponse = restTemplate.postForEntity(apiUrl, shortenedEntity, String.class);
 
-                    List<Map<String, String>> shortenedMessages = List.of(
-                            Map.of("role", "system", "content", systemPrompt),
-                            Map.of("role", "user", "content", shortenedUserPrompt)
-                    );
-
-                    requestBody.put("messages", shortenedMessages);
-                    HttpEntity<Map<String, Object>> shortenedEntity = new HttpEntity<>(requestBody, headers);
-
-                    log.info("Повторная попытка с сокращенным контекстом размером {} символов", shortenedContext.length());
-                    ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, shortenedEntity, String.class);
-
-                    if (response.getStatusCode() == HttpStatus.OK) {
-                        String responseBody = response.getBody();
-                        log.debug("Получен ответ от OpenRouter API со сокращенным контекстом: {}", responseBody);
-                        JsonNode rootNode = objectMapper.readTree(responseBody);
-                        String content = rootNode.path("choices").get(0).path("message").path("content").asText();
-
-                        OpenRouterResponse openRouterResponse = parseOpenRouterResponse(content);
-                        log.info("OpenRouter API оценил время выполнения задания '{}' в {} минут (со сокращенным контекстом), объяснение: {}",
-                                taskName, openRouterResponse.getEstimatedMinutes(), openRouterResponse.getExplanation());
-                        return openRouterResponse;
+                    if (shortenedResponse.getStatusCode() == HttpStatus.OK) {
+                        String responseBodyShort = shortenedResponse.getBody();
+                        log.debug("Получен ответ от Gemini API (сокращенный): {}", responseBodyShort);
+                        JsonNode rootNodeShort = objectMapper.readTree(responseBodyShort);
+                        JsonNode candidatesNodeShort = rootNodeShort.path("candidates");
+                         if (candidatesNodeShort.isMissingNode() || !candidatesNodeShort.isArray() || candidatesNodeShort.isEmpty()) {
+                             throw new RuntimeException("Gemini API (сокращенный) вернул неверный формат ответа (нет candidates).");
+                         }
+                        String jsonResponseTextShort = candidatesNodeShort.get(0).path("content").path("parts").get(0).path("text").asText();
+                         if (jsonResponseTextShort.isEmpty()) {
+                            throw new RuntimeException("Gemini API (сокращенный) вернул пустой ответ в parts.text.");
+                        }
+                        OpenRouterResponse geminiJsonResponseShort = parseOpenRouterResponse(jsonResponseTextShort);
+                        log.info("Gemini API (сокращенный) оценил время '{}' в {} минут", taskName, geminiJsonResponseShort.getEstimatedMinutes());
+                        return geminiJsonResponseShort;
                     } else {
-                        log.error("Ошибка при запросе к OpenRouter API со сокращенным контекстом: {}", response.getStatusCode());
-                        throw new RuntimeException("Ошибка при запросе к OpenRouter API: " + response.getStatusCode());
+                        log.error("Ошибка при запросе к Gemini API (сокращенный): {}. Ответ: {}", shortenedResponse.getStatusCode(), shortenedResponse.getBody());
+                        throw new RuntimeException("Ошибка при запросе к Gemini API (сокращенный): " + shortenedResponse.getStatusCode() + " " + shortenedResponse.getBody());
                     }
-                } else {
-                    throw e;
                 }
+                log.error("Ошибка при обработке запроса к Gemini API: {}", e.getMessage(), e);
+                throw e; 
             }
         } catch (Exception e) {
-            log.error("Ошибка при обработке запроса к OpenRouter API: {}", e.getMessage(), e);
-            return new OpenRouterResponse(120, "Примерная оценка по умолчанию: задание средней сложности, требующее около 2 часов работы. Точная оценка невозможна из-за ошибки API.");
+            log.error("Не удалось получить оценку от Gemini API: {}", e.getMessage(), e);
+            String errorMessage = e.getMessage() != null ? e.getMessage() : "Неизвестная ошибка";
+            return new OpenRouterResponse(120, "Примерная оценка по умолчанию (Gemini): задание средней сложности, требующее около 2 часов. Точная оценка не удалась из-за ошибки: " + errorMessage.substring(0, Math.min(100, errorMessage.length())));
         }
     }
 
@@ -310,11 +335,17 @@ public class OpenRouterService {
             JsonNode jsonNode = objectMapper.readTree(jsonContent);
             int estimatedMinutes = jsonNode.path("estimatedMinutes").asInt();
             String explanation = jsonNode.path("explanation").asText();
+
+            if (estimatedMinutes == 0 && explanation.isEmpty()) { // Проверка на пустой валидный JSON
+                 log.warn("Gemini API вернул пустой, но валидный JSON: {}", jsonContent);
+                 throw new RuntimeException("API вернул пустой JSON ответ.");
+            }
             return new OpenRouterResponse(estimatedMinutes, explanation);
         } catch (Exception e) {
-            log.error("Ошибка при парсинге ответа от OpenRouter API: {}", e.getMessage());
-            int estimatedMinutes = extractMinutesFromText(content);
-            return new OpenRouterResponse(estimatedMinutes, "Извлечено из текста ответа: " + content.substring(0, Math.min(200, content.length())));
+            log.error("Ошибка при парсинге ответа от API (ожидался JSON): {}. Ответ: '{}'", e.getMessage(), content.substring(0, Math.min(500, content.length())));
+            // Попытка извлечь минуты из текста, если парсинг JSON не удался
+            int estimatedMinutes = extractMinutesFromText(content); 
+            return new OpenRouterResponse(estimatedMinutes, "Не удалось распарсить JSON из ответа API. Извлечено из текста: " + content.substring(0, Math.min(200, content.length())));
         }
     }
 
@@ -402,18 +433,18 @@ public class OpenRouterService {
 
                 log.info("Оценка времени не найдена для задания {}, отправляем на анализ в OpenRouter API", task.getId());
                 String context = getTaskContext(task, userId);
-                OpenRouterResponse openRouterResponse = askOpenRouterForTimeEstimate(context, task.getName());
+                OpenRouterResponse geminiResponse = askGeminiForTimeEstimate(context, task.getName());
 
-                task.setEstimatedMinutes(openRouterResponse.getEstimatedMinutes());
-                task.setTimeEstimateExplanation(openRouterResponse.getExplanation());
+                task.setEstimatedMinutes(geminiResponse.getEstimatedMinutes());
+                task.setTimeEstimateExplanation(geminiResponse.getExplanation());
                 task.setTimeEstimateCreatedAt(new Date());
                 taskRepository.save(task);
 
                 responses.add(TaskTimeEstimateResponse.builder()
                         .taskId(task.getId())
                         .taskName(task.getName())
-                        .estimatedMinutes(openRouterResponse.getEstimatedMinutes())
-                        .explanation(openRouterResponse.getExplanation())
+                        .estimatedMinutes(geminiResponse.getEstimatedMinutes())
+                        .explanation(geminiResponse.getExplanation())
                         .createdAt(task.getTimeEstimateCreatedAt())
                         .fromCache(false)
                         .build());
@@ -426,7 +457,7 @@ public class OpenRouterService {
         return responses;
     }
 
-    private java.sql.Date determineSemesterDate(LocalDate date) {
+    public java.sql.Date determineSemesterDate(LocalDate date) {
         int year = date.getYear();
         int month = date.getMonthValue();
 
@@ -440,7 +471,7 @@ public class OpenRouterService {
     }
 
 
-    private List<Task> findTasksForUserBySemesterWithSource(Long userId, java.sql.Date semesterDate) {
+    public List<Task> findTasksForUserBySemesterWithSource(Long userId, java.sql.Date semesterDate) {
         List<Task> tasks = taskRepository.findTasksBySourceAndPersonIdAndSemesterDate(TaskSource.PARSED, userId, semesterDate);
 
         log.info("Найдено заданий для пользователя {} с источником {} в семестре {}: {}",
@@ -452,5 +483,53 @@ public class OpenRouterService {
         }
 
         return tasks;
+    }
+
+    public List<TaskTimeEstimateResponse> refreshTaskEstimatesBySemester(Date date, Long userId) {
+        LocalDate localDate = new java.sql.Date(date.getTime()).toLocalDate();
+        java.sql.Date semesterDate = determineSemesterDate(localDate);
+
+        log.info("Принудительное обновление оценок для семестра с датой {} для пользователя {}", semesterDate, userId);
+
+        List<Task> tasks = findTasksForUserBySemesterWithSource(userId, semesterDate);
+        log.info("Найдено {} заданий для принудительного обновления в семестре с датой {}", tasks.size(), semesterDate);
+
+        List<TaskTimeEstimateResponse> responses = new ArrayList<>();
+
+        for (Task task : tasks) {
+            try {
+                log.info("Принудительное обновление оценки для задания {}, ID: {}", task.getName(), task.getId());
+                String context = getTaskContext(task, userId);
+                OpenRouterResponse geminiResponse = askGeminiForTimeEstimate(context, task.getName());
+
+                task.setEstimatedMinutes(geminiResponse.getEstimatedMinutes());
+                task.setTimeEstimateExplanation(geminiResponse.getExplanation());
+                task.setTimeEstimateCreatedAt(new Date());
+                taskRepository.save(task);
+
+                responses.add(TaskTimeEstimateResponse.builder()
+                        .taskId(task.getId())
+                        .taskName(task.getName())
+                        .estimatedMinutes(geminiResponse.getEstimatedMinutes())
+                        .explanation(geminiResponse.getExplanation())
+                        .createdAt(task.getTimeEstimateCreatedAt())
+                        .fromCache(false) // Всегда false, так как это принудительное обновление
+                        .build());
+
+            } catch (Exception e) {
+                log.error("Ошибка при принудительном обновлении задания {}: {}", task.getId(), e.getMessage(), e);
+                // Можно добавить обработку ошибки, например, вернуть старую оценку или специальный объект ошибки
+                responses.add(TaskTimeEstimateResponse.builder()
+                        .taskId(task.getId())
+                        .taskName(task.getName() + " (ошибка обновления)")
+                        .estimatedMinutes(task.getEstimatedMinutes() != null ? task.getEstimatedMinutes() : 0)
+                        .explanation("Не удалось обновить оценку: " + e.getMessage().substring(0, Math.min(100, e.getMessage().length())))
+                        .createdAt(task.getTimeEstimateCreatedAt() != null ? task.getTimeEstimateCreatedAt() : new Date())
+                        .fromCache(true) // Указываем, что это старая оценка из-за ошибки
+                        .build());
+            }
+        }
+        log.info("Завершено принудительное обновление {} оценок для семестра.", responses.size());
+        return responses;
     }
 } 
