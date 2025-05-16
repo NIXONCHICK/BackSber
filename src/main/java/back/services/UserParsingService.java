@@ -9,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,19 +57,18 @@ public class UserParsingService {
     }
   }
 
-  @Async
-  public void parseAndUpdateUser(long personId) {
+  public boolean parseAndUpdateUser(long personId) {
     Optional<Person> personOptional = personRepository.findById(personId);
     if (personOptional.isEmpty()) {
       System.err.println("parseAndUpdateUser: Person с id " + personId + " не найден.");
-      return;
+      return false;
     }
     Person person = personOptional.get();
 
     String moodleSession = person.getMoodleSession();
     if (moodleSession == null || moodleSession.trim().isEmpty()) {
       System.err.println("parseAndUpdateUser: Отсутствует Moodle сессия для personId: " + personId + ". Парсинг невозможен.");
-      return;
+      return false;
     }
 
     String myUrl = "https://lms.sfedu.ru/my/";
@@ -80,7 +78,7 @@ public class UserParsingService {
       System.out.println("Страница 'My' успешно загружена.");
     } catch (Exception e) {
       e.printStackTrace();
-      return;
+      return false;
     }
 
     Map<String, ParsedSubject> parsedSubjectsMap = new HashMap<>();
@@ -406,6 +404,7 @@ public class UserParsingService {
     personRepository.save(person);
 
     System.out.println("Все данные успешно собраны и сохранены одним набором запросов!");
+    return true;
   }
 
 

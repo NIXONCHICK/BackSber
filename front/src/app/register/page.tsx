@@ -70,6 +70,9 @@ export default function RegisterPage() {
       setLoadingMessage('Завершаем регистрацию...');
       login(data.token, { id: data.id, email: data.email, role: data.role });
       
+      // Устанавливаем флаг в localStorage перед редиректом
+      localStorage.setItem('needsInitialParsing', 'true');
+
       // Редирект на главную страницу после успешной регистрации и входа
       router.push('/');
 

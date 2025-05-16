@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import back.entities.Person;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,7 +37,6 @@ public class PersonAuthController {
 
     try {
       LoginResponse loginResponse = authService.register(registerRequest);
-      userParsingService.parseAndUpdateUser(loginResponse.getId());
       return ResponseEntity.status(HttpStatus.CREATED).body(loginResponse);
     } catch (SfedAuthenticationException ex) {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -50,6 +51,26 @@ public class PersonAuthController {
     }
   }
   
+  @PostMapping("/user/initiate-parsing")
+  public ResponseEntity<?> initiateParsing(@AuthenticationPrincipal Person authenticatedPerson) {
+    if (authenticatedPerson == null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Пользователь не аутентифицирован."));
+    }
+    try {
+      long userId = authenticatedPerson.getId();
+      boolean parsingResult = userParsingService.parseAndUpdateUser(userId);
+      if (parsingResult) {
+        return ResponseEntity.ok(Map.of("message", "Сбор данных успешно завершен."));
+      } else {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "Ошибка при сборе данных."));
+      }
+    } catch (Exception ex) {
+      ex.printStackTrace();
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .body(Map.of("message", "Внутренняя ошибка сервера при инициации сбора данных."));
+    }
+  }
+
   @PostMapping("/auth/login")
   public ResponseEntity<?> login(@RequestBody @Valid LoginRequest loginRequest, BindingResult bindingResult) {
     if (bindingResult.hasErrors()) {
