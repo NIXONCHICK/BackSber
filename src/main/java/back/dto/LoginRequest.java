@@ -1,6 +1,7 @@
 package back.dto;
 
 import jakarta.validation.constraints.*;
+// import jakarta.validation.constraints.Size; // Убираем импорт Size, если он больше не нужен (NotBlank его заменяет для проверки на пустоту)
 import lombok.Data;
 
 @Data
@@ -9,7 +10,6 @@ public class LoginRequest {
   @NotEmpty(message = "Email must not be empty")
   private String email;
 
-  @Size(min = 6, message = "Password must be at least 6 characters long")
   @NotEmpty(message = "Password must not be empty")
   private String password;
 }

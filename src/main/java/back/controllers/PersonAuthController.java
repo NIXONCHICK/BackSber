@@ -3,6 +3,7 @@ package back.controllers;
 import back.dto.LoginRequest;
 import back.dto.LoginResponse;
 import back.dto.RegisterRequest;
+import back.exceptions.SfedAuthenticationException;
 import back.services.AuthService;
 import back.services.UserParsingService;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +14,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -28,19 +30,23 @@ public class PersonAuthController {
       StringBuilder errorMsg = new StringBuilder();
       bindingResult.getFieldErrors().forEach(fieldError ->
           errorMsg.append(fieldError.getDefaultMessage()).append("; "));
-      return ResponseEntity.badRequest().body("{\"message\": \"" + errorMsg + "\"}");
+      return ResponseEntity.badRequest().body(Map.of("message", errorMsg.toString().trim()));
     }
 
     try {
       LoginResponse loginResponse = authService.register(registerRequest);
-      userParsingService.parseAndUpdateUser(registerRequest, loginResponse.getId());
+      userParsingService.parseAndUpdateUser(loginResponse.getId());
       return ResponseEntity.status(HttpStatus.CREATED).body(loginResponse);
+    } catch (SfedAuthenticationException ex) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+          .body(Map.of("message", ex.getMessage(), "errorCode", ex.getErrorCode()));
     } catch (IllegalStateException ex) {
       return ResponseEntity.status(HttpStatus.CONFLICT)
-          .body("{\"message\": \"" + ex.getMessage() + "\"}");
+          .body(Map.of("message", ex.getMessage()));
     } catch (Exception ex) {
+      ex.printStackTrace();
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-          .body("{\"message\": \"" + ex.getMessage() + "\"}");
+          .body(Map.of("message", "Внутренняя ошибка сервера при регистрации."));
     }
   }
   
@@ -50,7 +56,7 @@ public class PersonAuthController {
       StringBuilder errorMsg = new StringBuilder();
       bindingResult.getFieldErrors().forEach(fieldError ->
           errorMsg.append(fieldError.getDefaultMessage()).append("; "));
-      return ResponseEntity.badRequest().body("{\"message\": \"" + errorMsg + "\"}");
+      return ResponseEntity.badRequest().body(Map.of("message", errorMsg.toString().trim()));
     }
 
     try {
@@ -58,10 +64,11 @@ public class PersonAuthController {
       return ResponseEntity.ok(loginResponse);
     } catch (BadCredentialsException ex) {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-          .body("{\"message\": \"Неверный email или пароль\"}");
+          .body(Map.of("message", "Неверный email или пароль"));
     } catch (Exception ex) {
+      ex.printStackTrace();
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-          .body("{\"message\": \"" + ex.getMessage() + "\"}");
+          .body(Map.of("message", "Внутренняя ошибка сервера при входе: " + ex.getMessage()));
     }
   }
 }

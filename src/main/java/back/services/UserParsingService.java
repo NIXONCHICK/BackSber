@@ -1,9 +1,10 @@
 package back.services;
 
-import back.dto.RegisterRequest;
 import back.entities.*;
+import back.exceptions.SfedAuthenticationException;
 import back.repositories.*;
 import back.util.SeleniumUtil;
+import back.util.SfedLoginResult;
 import lombok.RequiredArgsConstructor;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -35,18 +36,42 @@ public class UserParsingService {
   private final PageParsingService pageParsingService;
 
 
+
+  public String validateSfedUCredentialsAndGetSession(String email, String password) {
+    try {
+      SfedLoginResult loginResult = SeleniumUtil.loginAndGetMoodleSession(email, password);
+      
+      if (!loginResult.isSuccess()) {
+        // Логин не удался, выбрасываем кастомное исключение с деталями
+        System.err.println("Ошибка при попытке эмуляции входа в SFEDU для email: " + email + 
+                           "; Код ошибки: " + loginResult.errorCode() + 
+                           "; Сообщение: " + loginResult.detailedErrorMessage());
+        throw new SfedAuthenticationException(loginResult.errorCode(), loginResult.detailedErrorMessage());
+      }
+      return loginResult.moodleSession();
+    } catch (SfedAuthenticationException e) {
+        throw e;
+    } catch (Exception e) {
+      System.err.println("Неожиданная ошибка при вызове SeleniumUtil для email: " + email + ": " + e.getMessage());
+      throw new SfedAuthenticationException("SFEDU_LOGIN_UNEXPECTED_ERROR",
+                                          "Неожиданная системная ошибка при проверке учетных данных SFEDU: " + e.getMessage(), e);
+    }
+  }
+
   @Async
-  public void parseAndUpdateUser(RegisterRequest registerRequest, long personId) {
+  public void parseAndUpdateUser(long personId) {
     Optional<Person> personOptional = personRepository.findById(personId);
     if (personOptional.isEmpty()) {
+      System.err.println("parseAndUpdateUser: Person с id " + personId + " не найден.");
       return;
     }
     Person person = personOptional.get();
 
-    String moodleSession = SeleniumUtil.loginAndGetMoodleSession(
-        registerRequest.getEmail(), registerRequest.getPassword()
-    );
-    person.setMoodleSession(moodleSession);
+    String moodleSession = person.getMoodleSession();
+    if (moodleSession == null || moodleSession.trim().isEmpty()) {
+      System.err.println("parseAndUpdateUser: Отсутствует Moodle сессия для personId: " + personId + ". Парсинг невозможен.");
+      return;
+    }
 
     String myUrl = "https://lms.sfedu.ru/my/";
     Document myDoc;

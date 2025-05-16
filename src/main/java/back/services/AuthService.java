@@ -4,6 +4,7 @@ import back.dto.LoginRequest;
 import back.dto.LoginResponse;
 import back.dto.RegisterRequest;
 import back.entities.Person;
+import back.exceptions.SfedAuthenticationException;
 import back.repositories.PersonRepository;
 import back.util.EncryptionUtil;
 import back.util.JwtUtil;
@@ -30,6 +31,7 @@ public class AuthService {
   private final JwtUtil jwtUtil;
   private final EncryptionUtil encryptionUtil;
   private final AuthenticationManager authenticationManager;
+  private final UserParsingService userParsingService;
 
   @Transactional
   public LoginResponse register(RegisterRequest registerRequest) {
@@ -37,10 +39,22 @@ public class AuthService {
     if (existingPerson != null) {
       throw new IllegalStateException("Пользователь с таким email уже существует.");
     }
-    
+
+    String moodleSession;
+    try {
+      moodleSession = userParsingService.validateSfedUCredentialsAndGetSession(
+          registerRequest.getEmail(),
+          registerRequest.getPassword()
+      );
+    } catch (SfedAuthenticationException e) {
+      System.err.println("SFEDU Authentication failed during registration for email " + registerRequest.getEmail() + 
+                         ": [" + e.getErrorCode() + "] " + e.getMessage());
+      throw e;
+    }
+
     Person person = modelMapper.map(registerRequest, Person.class);
-    
     person.setPassword(encryptionUtil.encryptPassword(registerRequest.getPassword()));
+    person.setMoodleSession(moodleSession);
     
     personRepository.save(person);
     
