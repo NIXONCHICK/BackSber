@@ -13,6 +13,7 @@ import java.util.Optional;
 
 public interface TaskRepository extends JpaRepository<Task, Long> {
   List<Task> findAllByAssignmentsUrlIn(Collection<String> urls);
+  List<Task> findAllBySubjectId(Long subjectId);
 
   @Query("SELECT t FROM Task t LEFT JOIN FETCH t.subject " +
       "JOIN StudentTaskAssignment sta ON sta.task = t " +

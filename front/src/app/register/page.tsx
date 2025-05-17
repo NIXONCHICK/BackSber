@@ -5,8 +5,6 @@ import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 
-type Role = 'STUDENT' | 'ELDER';
-
 export default function RegisterPage() {
   const router = useRouter();
   const { login } = useAuth();
@@ -14,7 +12,6 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState<Role>('STUDENT');
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -52,7 +49,11 @@ export default function RegisterPage() {
           'Content-Type': 'application/json',
         },
         // Отправляем только те поля, которые ожидает RegisterRequest на бэкенде
-        body: JSON.stringify({ email, password, role }),
+        // Поле role больше не отправляется явно с фронта,
+        // но на бэкенде оно все еще в RegisterRequest DTO (для @NotNull).
+        // Бэкенд теперь сам устанавливает Role.STUDENT.
+        // Чтобы запрос проходил валидацию на бэке, временно будем отправлять 'STUDENT'
+        body: JSON.stringify({ email, password, role: 'STUDENT' }),
       });
 
       const data = await response.json();
@@ -154,36 +155,6 @@ export default function RegisterPage() {
               className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-gray-100 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-colors duration-300 disabled:opacity-50"
               placeholder="••••••••"
             />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-sky-300 mb-2">Выберите вашу роль</label>
-            <div className="flex items-center space-x-6">
-              <label className="flex items-center text-slate-200">
-                <input 
-                  type="radio" 
-                  name="role" 
-                  value="STUDENT" 
-                  checked={role === 'STUDENT'}
-                  onChange={() => setRole('STUDENT')}
-                  disabled={isLoading}
-                  className="form-radio h-4 w-4 text-sky-600 bg-slate-700 border-slate-500 focus:ring-sky-500 transition duration-150 ease-in-out"
-                />
-                <span className="ml-2">Студент</span>
-              </label>
-              <label className="flex items-center text-slate-200">
-                <input 
-                  type="radio" 
-                  name="role" 
-                  value="ELDER" 
-                  checked={role === 'ELDER'}
-                  onChange={() => setRole('ELDER')}
-                  disabled={isLoading}
-                  className="form-radio h-4 w-4 text-sky-600 bg-slate-700 border-slate-500 focus:ring-sky-500 transition duration-150 ease-in-out"
-                />
-                <span className="ml-2">Староста</span>
-              </label>
-            </div>
           </div>
 
           {error && (

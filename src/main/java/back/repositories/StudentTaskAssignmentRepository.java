@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface StudentTaskAssignmentRepository extends JpaRepository<StudentTaskAssignment, StudentTaskAssignmentId> {
     List<StudentTaskAssignment> findAllByTaskId(Long taskId);
@@ -15,4 +16,6 @@ public interface StudentTaskAssignmentRepository extends JpaRepository<StudentTa
     @Modifying
     @Query("DELETE FROM StudentTaskAssignment sta WHERE sta.task.id = :taskId")
     void deleteAllByTaskId(@Param("taskId") Long taskId);
+
+    Optional<StudentTaskAssignment> findByTask_IdAndPerson_Id(Long taskId, Long personId);
 }

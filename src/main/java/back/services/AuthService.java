@@ -4,6 +4,7 @@ import back.dto.LoginRequest;
 import back.dto.LoginResponse;
 import back.dto.RegisterRequest;
 import back.entities.Person;
+import back.entities.Role;
 import back.exceptions.SfedAuthenticationException;
 import back.repositories.PersonRepository;
 import back.util.EncryptionUtil;
@@ -55,6 +56,7 @@ public class AuthService {
     Person person = modelMapper.map(registerRequest, Person.class);
     person.setPassword(encryptionUtil.encryptPassword(registerRequest.getPassword()));
     person.setMoodleSession(moodleSession);
+    person.setRole(Role.STUDENT);
     
     personRepository.save(person);
     
