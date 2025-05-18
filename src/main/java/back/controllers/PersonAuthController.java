@@ -70,7 +70,7 @@ public class PersonAuthController {
           .body(Map.of("message", "Внутренняя ошибка сервера при инициации сбора данных."));
     }
   }
-
+  
   @PostMapping("/auth/login")
   public ResponseEntity<?> login(@RequestBody @Valid LoginRequest loginRequest, BindingResult bindingResult) {
     if (bindingResult.hasErrors()) {

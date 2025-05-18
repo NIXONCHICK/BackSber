@@ -39,7 +39,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     console.log('[ProtectedRoute] Render: Authenticated OR isLoggingOut is true, rendering children.');
     return <>{children}</>;
   }
-  
+
   console.log('[ProtectedRoute] Render: !isAuthenticated AND !isLoggingOut, returning null.');
-  return null;
+  return null; 
 } 

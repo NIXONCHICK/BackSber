@@ -532,4 +532,62 @@ public class OpenRouterService {
         log.info("Завершено принудительное обновление {} оценок для семестра.", responses.size());
         return responses;
     }
+
+    // Новый метод для анализа семестра
+    public String getSemesterAnalysis(String semesterAnalysisPrompt) {
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            log.info("Отправляем запрос Gemini API для анализа семестра с промптом размером {} символов", semesterAnalysisPrompt.length());
+
+            Map<String, Object> part = new HashMap<>();
+            part.put("text", semesterAnalysisPrompt);
+
+            Map<String, Object> content = new HashMap<>();
+            content.put("parts", List.of(part));
+
+            Map<String, Object> generationConfig = new HashMap<>();
+            // generationConfig.put("temperature", 0.2); // Можно настроить для более творческих/менее детерминированных ответов
+            generationConfig.put("responseMimeType", "text/plain"); // Ожидаем простой текст
+
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("contents", List.of(content));
+            requestBody.put("generationConfig", generationConfig);
+
+            String apiUrl = String.format("%s/%s:generateContent?key=%s", geminiApiBaseUrl, geminiModelName, geminiApiKey);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+            ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, entity, String.class);
+
+            if (response.getStatusCode() == HttpStatus.OK) {
+                String responseBody = response.getBody();
+                log.debug("Получен ответ от Gemini API для анализа семестра: {}", responseBody);
+                JsonNode rootNode = objectMapper.readTree(responseBody);
+
+                JsonNode candidatesNode = rootNode.path("candidates");
+                if (candidatesNode.isMissingNode() || !candidatesNode.isArray() || candidatesNode.isEmpty()) {
+                    log.error("Gemini API (анализ семестра) вернул ответ без валидного поля 'candidates': {}", responseBody);
+                    // ... (обработка ошибки, если promptFeedback есть)
+                    throw new RuntimeException("Gemini API (анализ семестра) вернул неверный формат ответа (отсутствует 'candidates').");
+                }
+
+                String analysisText = candidatesNode.get(0).path("content").path("parts").get(0).path("text").asText();
+                if (analysisText.isEmpty()) {
+                     log.error("Gemini API (анализ семестра) вернул пустой текст в content.parts[0].text: {}", responseBody);
+                     throw new RuntimeException("Gemini API (анализ семестра) вернул пустой ответ в ожидаемом поле.");
+                }
+                log.info("Gemini API успешно вернул анализ семестра.");
+                return analysisText;
+            } else {
+                log.error("Ошибка при запросе к Gemini API (анализ семестра): {}. Ответ: {}", response.getStatusCode(), response.getBody());
+                throw new RuntimeException("Ошибка при запросе к Gemini API (анализ семестра): " + response.getStatusCode() + " " + response.getBody());
+            }
+        } catch (Exception e) {
+            log.error("Исключение при вызове Gemini API для анализа семестра: {}", e.getMessage(), e);
+            // Можно добавить более специфичную обработку ошибок, если необходимо
+            throw new RuntimeException("Ошибка при обращении к сервису анализа семестра: " + e.getMessage(), e);
+        }
+    }
 } 

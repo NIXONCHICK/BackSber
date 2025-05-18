@@ -140,7 +140,7 @@ public class CourseQueryService {
             if (originalTaskName != null && originalTaskName.endsWith(" Задание")) {
                 processedTaskName = originalTaskName.substring(0, originalTaskName.length() - " Задание".length());
             }
-            taskDtos.add(new TaskDto(task.getId(), processedTaskName, deadline, status, grade, description));
+            taskDtos.add(new TaskDto(task.getId(), processedTaskName, deadline, status, grade, description, task.getEstimatedMinutes(), task.getTimeEstimateExplanation()));
         }
         // Сортировка задач, например, по дедлайну (сначала те, у кого он есть и раньше)
         taskDtos.sort(Comparator

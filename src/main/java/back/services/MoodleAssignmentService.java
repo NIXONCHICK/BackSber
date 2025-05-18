@@ -200,87 +200,181 @@ public class MoodleAssignmentService {
     private File downloadFile(String fileUrl, String moodleSession, Person person) throws IOException {
         IOException lastException = null;
         try {
+            log.info("Первая попытка скачать файл: {} для пользователя {}", fileUrl, person.getEmail());
             return downloadFileWithSession(fileUrl, moodleSession);
         } catch (IOException e) {
-            if (e.getMessage() != null && e.getMessage().matches(".*(код: (30\\d|40[13]|429|5\\d{2})|redirected too many|Forbidden|Unauthorized|доступ запрещен|сессия истекла|требуется авторизация).*i")) {
-                log.warn("Возникла ошибка при скачивании файла ({}) с текущей сессией для {}: {}. Попытка обновить сессию.", fileUrl, person.getEmail(), e.getMessage());
+            String errorMessage = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+            // Расширенная проверка на ключевые фразы, указывающие на проблемы с сессией или доступом
+            if (errorMessage.contains("redirected too many") ||      // English
+                errorMessage.contains("слишком много редиректов") || // Russian
+                errorMessage.contains("код: 30") || // Любой 30x код
+                errorMessage.contains("код: 401") || // Unauthorized
+                errorMessage.contains("код: 403") || // Forbidden
+                errorMessage.contains("код: 429") || // Too Many Requests
+                errorMessage.contains("код: 5")   || // Любой 5xx код (серверные ошибки часто связаны с проблемами сессии)
+                errorMessage.contains("forbidden") ||
+                errorMessage.contains("unauthorized") ||
+                errorMessage.contains("доступ запрещен") ||
+                errorMessage.contains("сессия истекла") ||
+                errorMessage.contains("требуется авторизация")) {
+                log.warn("Ошибка при скачивании файла ({}) с текущей сессией для {}: {}. Попытка обновить сессию.", fileUrl, person.getEmail(), e.getMessage());
                 lastException = e;
             } else {
+                log.error("Нераспознанная или не требующая обновления сессии ошибка IO при скачивании файла {} для {}: {}", fileUrl, person.getEmail(), e.getMessage(), e);
                 throw e;
             }
         }
 
+        // Если мы здесь, значит, первая попытка провалилась и lastException должно быть установлено.
         if (lastException == null) {
-             log.error("Непредвиденная ситуация в downloadFile: lastException is null, но мы не вышли по throw e. Исходное сообщение: {}", (fileUrl != null ? fileUrl : "URL не указан"));
-             throw new IOException("Непредвиденная ошибка при скачивании файла " + (fileUrl != null ? fileUrl : "(URL не указан)"));
-        }
-        
-        log.info("Пробуем скачать файл {} с новой сессией после ошибки: {}", fileUrl, lastException.getMessage());
-        String newSession = refreshMoodleSession(person);
-        if (newSession == null) {
-            log.error("Не удалось обновить сессию для пользователя {}. Скачивание файла {} отменено.", person.getEmail(), fileUrl);
-            return null; 
+             // Эта ситуация не должна возникать. Логируем и бросаем новое исключение для ясности.
+             log.error("Критическая ошибка логики в downloadFile: lastException is null, хотя должна была быть ошибка. URL: {}", fileUrl);
+             throw new IOException("Критическая ошибка логики: lastException не установлен после перехваченной ошибки при скачивании файла " + fileUrl);
         }
 
+        log.info("Пробуем скачать файл {} с новой сессией. Пользователь: {}. Ошибка при первой попытке: {}", fileUrl, person.getEmail(), lastException.getMessage());
+
+        String newSession = null;
+        try {
+            log.info("НАЧИНАЕМ ВЫЗОВ refreshMoodleSession для пользователя: {}", person.getEmail());
+            newSession = refreshMoodleSession(person);
+            if (newSession == null) {
+                log.error("refreshMoodleSession вернул null для пользователя {}. Обновление сессии не удалось.", person.getEmail());
+                throw new IOException("Не удалось обновить Moodle сессию (refreshMoodleSession вернул null) для " + person.getEmail() + " при попытке скачать файл " + fileUrl + ". Исходная ошибка скачивания: " + lastException.getMessage(), lastException);
+            } else {
+                log.info("Успешно получен новый MoodleSession для {} (длина: {}): {}...", person.getEmail(), newSession.length(), newSession.substring(0, Math.min(10, newSession.length())));
+            }
+        } catch (Exception refreshEx) { // Ловим RuntimeException и другие возможные ошибки из refreshMoodleSession
+            log.error("Критическая ошибка при вызове refreshMoodleSession для пользователя {}: {}", person.getEmail(), refreshEx.getMessage(), refreshEx);
+            throw new IOException("Критическая ошибка во время обновления Moodle сессии для " + person.getEmail() + " (" + refreshEx.getMessage() + ") при попытке скачать файл " + fileUrl + ". Исходная ошибка скачивания: " + lastException.getMessage(), refreshEx);
+        }
+
+        log.info("Повторная попытка скачать файл {} с только что обновленной сессией для {}", fileUrl, person.getEmail());
         try {
             return downloadFileWithSession(fileUrl, newSession);
         } catch (IOException finalE) {
-            log.error("Не удалось скачать файл {} для {} даже после обновления сессии: {}", fileUrl, person.getEmail(), finalE.getMessage());
-            throw new IOException("Не удалось скачать файл " + fileUrl + " после попытки обновления сессии. Исходная проблема: " + lastException.getMessage(), finalE);
+            log.error("Не удалось скачать файл {} для {} даже ПОСЛЕ успешного ОБНОВЛЕНИЯ сессии. Ошибка при второй попытке: {}. Исходная ошибка (до обновления сессии): {}",
+                      fileUrl, person.getEmail(), finalE.getMessage(), lastException.getMessage(), finalE);
+            // Создаем новое исключение, связывая его с finalE (ошибка второй попытки) и включая сообщение от lastException (ошибка первой попытки)
+            throw new IOException("Не удалось скачать файл " + fileUrl + " для " + person.getEmail() + " даже после обновления сессии. Ошибка при второй попытке: " + finalE.getMessage() + ". Исходная ошибка перед обновлением: " + lastException.getMessage(), finalE);
         }
     }
 
 
     private File downloadFileWithSession(String fileUrl, String moodleSession) throws IOException {
+        HttpURLConnection conn = null;
+        InputStream inputStream = null;
+        FileOutputStream outputStream = null;
+        File tempFile = null;
+        int redirectCount = 0;
+        final int MAX_REDIRECTS = 5; // Уменьшим максимальное количество редиректов для теста
+        String currentUrl = fileUrl;
+
         try {
-            String cleanUrl = fileUrl.contains("?")
-                    ? fileUrl.substring(0, fileUrl.indexOf("?"))
-                    : fileUrl;
+            while (redirectCount <= MAX_REDIRECTS) {
+                log.info("Попытка скачать файл: {}. Попытка редиректа: {}/{}", currentUrl, redirectCount, MAX_REDIRECTS);
+                URL url = new URL(currentUrl);
+                conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setRequestProperty("Cookie", "MoodleSession=" + moodleSession);
+                conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(15000);
+                conn.setInstanceFollowRedirects(false); // Отключаем автоматический редирект
 
-            URL url = new URL(fileUrl);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
-            conn.setRequestProperty("Cookie", "MoodleSession=" + moodleSession);
-            conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
-            conn.setConnectTimeout(15000);
-            conn.setReadTimeout(15000);
+                int responseCode = conn.getResponseCode();
 
-            int responseCode = conn.getResponseCode();
-            if (responseCode != 200) {
-                throw new IOException("Не удалось скачать файл, код: " + responseCode + " для URL: " + fileUrl);
-            }
+                if (responseCode >= 300 && responseCode < 400) { // Коды редиректа (301, 302, 303, 307, 308)
+                    String location = conn.getHeaderField("Location");
+                    if (location == null) {
+                        throw new IOException("Редирект с кодом " + responseCode + " но без заголовка Location для URL: " + currentUrl);
+                    }
+                    log.info("Редирект с {} на {}. URL: {}", responseCode, location, currentUrl);
+                    currentUrl = new URL(url, location).toString(); // Обрабатываем относительные URL
+                    conn.disconnect();
+                    redirectCount++;
+                    if (redirectCount > MAX_REDIRECTS) {
+                        throw new IOException("Слишком много редиректов (" + redirectCount + ") при скачивании файла: " + fileUrl + ". Последний URL: " + currentUrl);
+                    }
+                    continue; // Следующая итерация цикла для нового URL
+                }
 
-            String originalFileName = cleanUrl.substring(cleanUrl.lastIndexOf("/") + 1);
-            String fileExtension = "";
-            int lastDot = originalFileName.lastIndexOf('.');
-            if (lastDot > 0 && lastDot < originalFileName.length() - 1) {
-                fileExtension = originalFileName.substring(lastDot);
-            } else {
-                fileExtension = ".tmp";
-            }
-            fileExtension = fileExtension.replaceAll("[^a-zA-Z0-9.]", "").replaceAll("\\.{2,}", ".");
-            if (fileExtension.isEmpty() || !fileExtension.startsWith(".")) {
-                 fileExtension = ".tmp";
-            }
+                if (responseCode != HttpURLConnection.HTTP_OK) {
+                    String errorDetails = "Не удалось скачать файл, код: " + responseCode + " для URL: " + currentUrl;
+                    try (InputStream errorStream = conn.getErrorStream()) {
+                        if (errorStream != null) {
+                            String errorBody = new BufferedReader(new InputStreamReader(errorStream))
+                                    .lines().collect(java.util.stream.Collectors.joining("\n"));
+                            errorDetails += ". Тело ошибки: " + errorBody;
+                        }
+                    } catch (Exception e) {
+                        log.warn("Не удалось прочитать тело ошибки для URL {}: {}", currentUrl, e.getMessage());
+                    }
+                    throw new IOException(errorDetails);
+                }
 
-            File tempFile = Files.createTempFile("moodle_dl_", fileExtension).toFile();
-            log.info("Скачиваем файл (оригинальное имя: {}), сохраняем во временный файл: {}", originalFileName, tempFile.getAbsolutePath());
+                // Успешное соединение, скачиваем файл
+                String rawFileName = currentUrl.substring(currentUrl.lastIndexOf('/') + 1);
+                // Убираем query parameters из имени файла, если они есть
+                String fileName = rawFileName.contains("?") ? rawFileName.substring(0, rawFileName.indexOf("?")) : rawFileName;
+                // Декодируем имя файла, если оно URL-кодировано, но Moodle обычно отдает Content-Disposition
+                // String decodedFileName = java.net.URLDecoder.decode(fileName, StandardCharsets.UTF_8.name());
 
-            try (InputStream in = conn.getInputStream();
-                 FileOutputStream out = new FileOutputStream(tempFile)) {
+                // Попытка получить имя файла из заголовка Content-Disposition
+                String contentDisposition = conn.getHeaderField("Content-Disposition");
+                String actualFileName = fileName; // Используем имя из URL как fallback
+                if (contentDisposition != null) {
+                    String prefix = "filename*=UTF-8''"; // RFC 5987
+                    int index = contentDisposition.toLowerCase().indexOf(prefix);
+                    if (index > -1) {
+                        actualFileName = contentDisposition.substring(index + prefix.length());
+                        actualFileName = java.net.URLDecoder.decode(actualFileName, java.nio.charset.StandardCharsets.UTF_8.name());
+                    } else {
+                        prefix = "filename=\""; // Исправлено экранирование кавычки, вариант 2
+                        index = contentDisposition.toLowerCase().indexOf(prefix);
+                        if (index > -1) {
+                            actualFileName = contentDisposition.substring(index + prefix.length(), contentDisposition.length() - 1);
+                        }
+                    }
+                    // Заменяем недопустимые символы в имени файла
+                     actualFileName = actualFileName.replaceAll("[^a-zA-Z0-9.\\-_]", "_");
+                }
+
+
+                tempFile = Files.createTempFile("downloaded_", "_" + actualFileName).toFile();
+                inputStream = conn.getInputStream();
+                outputStream = new FileOutputStream(tempFile);
 
                 byte[] buffer = new byte[4096];
                 int bytesRead;
-                while ((bytesRead = in.read(buffer)) != -1) {
-                    out.write(buffer, 0, bytesRead);
+                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                    outputStream.write(buffer, 0, bytesRead);
+                }
+                log.info("Файл {} успешно скачан во временный файл: {}", actualFileName, tempFile.getAbsolutePath());
+                return tempFile; // Выход из цикла и метода
+            }
+            // Сюда мы не должны попасть, если все редиректы обработаны или файл скачан
+            throw new IOException("Превышено максимальное количество редиректов (" + MAX_REDIRECTS + ") для URL: " + fileUrl);
+
+        } finally {
+            if (inputStream != null) {
+                try {
+                    inputStream.close();
+                } catch (IOException e) {
+                    log.warn("Ошибка при закрытии InputStream: {}", e.getMessage());
                 }
             }
-
-            log.info("Файл успешно скачан (оригинальное имя: {}), временный файл: {}, размер: {} байт", originalFileName, tempFile.getName(), tempFile.length());
-            return tempFile;
-        } catch (Exception e) {
-            log.error("Ошибка при скачивании файла {} с сессией: {}", (fileUrl != null ? fileUrl : "(URL не указан)"), e.getMessage());
-            throw new IOException("Не удалось скачать файл " + (fileUrl != null ? fileUrl : "(URL не указан)") + ": " + e.getMessage(), e);
+            if (outputStream != null) {
+                try {
+                    outputStream.close();
+                } catch (IOException e) {
+                    log.warn("Ошибка при закрытии OutputStream: {}", e.getMessage());
+                }
+            }
+            if (conn != null) {
+                conn.disconnect();
+            }
+            // Не удаляем tempFile здесь, если он был успешно возвращен
         }
     }
 } 
