@@ -602,7 +602,7 @@ public class OpenRouterService {
 
     // Новый метод для получения задач со статусами
     public List<TaskForStudyPlanDto> findTasksWithStatusForStudyPlan(Long userId, java.sql.Date semesterDate) {
-        List<Task> tasks = findTasksForUserBySemesterWithSource(userId, semesterDate); // Используем существующий метод для получения задач
+        List<Task> tasks = findTasksForUserBySemesterWithSource(userId, semesterDate); 
         List<TaskForStudyPlanDto> taskDtos = new ArrayList<>();
 
         for (Task task : tasks) {
@@ -614,14 +614,17 @@ public class OpenRouterService {
             if (assignment != null) {
                 TaskGrading grading = taskGradingRepository.findByAssignment(assignment);
                 if (grading != null) {
-                    if (grading.getMark() != null || (grading.getGradingStatus() != null && (grading.getGradingStatus().toLowerCase().contains("оценен") || grading.getGradingStatus().toLowerCase().contains("зачет")))) {
+                    String gStatusLower = (grading.getGradingStatus() != null) ? grading.getGradingStatus().toLowerCase() : "";
+                    String subStatusLower = (grading.getSubmissionStatus() != null) ? grading.getSubmissionStatus().toLowerCase() : "";
+
+                    if (gStatusLower.contains("зачет")) {
+                        status = "Зачет";
+                    } else if (gStatusLower.contains("оценен") && !gStatusLower.contains("не оценен") && !gStatusLower.contains("не зачтен")) { 
                         status = "Оценено";
-                        if (grading.getGradingStatus() != null && grading.getGradingStatus().toLowerCase().contains("зачет")) {
-                            status = "Зачет";
-                        }
-                    } else if (grading.getSubmissionStatus() != null && !grading.getSubmissionStatus().isEmpty() && !grading.getSubmissionStatus().toLowerCase().contains("нет ответа")) {
+                    } else if (!subStatusLower.isEmpty() && !subStatusLower.contains("нет ответа")) {
                         status = "Сдано";
                     }
+                    // Иначе остается "Не сдано"
                 }
             }
 

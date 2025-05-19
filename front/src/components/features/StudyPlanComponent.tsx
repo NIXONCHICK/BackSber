@@ -6,6 +6,8 @@ import { useAuth } from '@/contexts/AuthContext';
 interface StudyPlanComponentProps {
   semesterId: string | null;
   formattedSemesterName?: string | null;
+  semesterStartDate?: string | null;
+  semesterEndDate?: string | null;
 }
 
 // Определяем интерфейсы на основе структуры данных из логов
@@ -33,7 +35,7 @@ interface StudyPlanData {
   totalTasksConsideredForPlanning: number;
 }
 
-export default function StudyPlanComponent({ semesterId, formattedSemesterName }: StudyPlanComponentProps) {
+export default function StudyPlanComponent({ semesterId, formattedSemesterName, semesterStartDate, semesterEndDate }: StudyPlanComponentProps) {
   const { token } = useAuth();
   const [studyPlan, setStudyPlan] = useState<StudyPlanData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -44,11 +46,61 @@ export default function StudyPlanComponent({ semesterId, formattedSemesterName }
   const [dailyHours, setDailyHours] = useState<string>("3"); // Дефолтное значение, например, 3 часа
   const [customPlanStartDate, setCustomPlanStartDate] = useState<string>(""); // ГГГГ-ММ-ДД
 
+  // Функция для получения сегодняшней даты в формате YYYY-MM-DD
+  const getTodayDateString = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = (today.getMonth() + 1).toString().padStart(2, '0');
+    const day = today.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  
   useEffect(() => {
+    // Устанавливаем сегодняшнюю дату по умолчанию при первой загрузке или смене семестра,
+    // если пользователь еще не выбрал дату или если выбранная дата вне нового семестра.
+    const today = getTodayDateString();
+    let newStartDate = today;
+
+    if (semesterStartDate && semesterEndDate) {
+      // Если текущая customPlanStartDate выходит за рамки нового семестра, или не задана, ставим сегодняшнюю,
+      // но не ранее начала семестра и не позднее конца семестра.
+      if (customPlanStartDate) {
+        const customDate = new Date(customPlanStartDate);
+        const semStart = new Date(semesterStartDate);
+        const semEnd = new Date(semesterEndDate);
+        if (customDate >= semStart && customDate <= semEnd) {
+          newStartDate = customPlanStartDate; // Оставляем пользовательскую, если она в рамках
+        } else {
+          // Если пользовательская дата вне рамок, ставим сегодняшнюю, но с ограничениями
+          if (new Date(today) < semStart) newStartDate = semesterStartDate;
+          else if (new Date(today) > semEnd) newStartDate = semesterEndDate;
+          // если сегодня внутри семестра, то newStartDate уже today
+        }
+      } else {
+        // Если customPlanStartDate не задана, ставим сегодняшнюю с ограничениями
+        const semStart = new Date(semesterStartDate);
+        const semEnd = new Date(semesterEndDate);
+        if (new Date(today) < semStart) newStartDate = semesterStartDate.split('T')[0]; // Берем только дату
+        else if (new Date(today) > semEnd) newStartDate = semesterEndDate.split('T')[0]; // Берем только дату
+        // иначе newStartDate уже today
+      }
+    } else {
+      // Если нет дат семестра, просто ставим сегодняшнюю (или оставляем если есть)
+      newStartDate = customPlanStartDate || today;
+    }
+    
+    // Убедимся что newStartDate в нужном формате YYYY-MM-DD
+    if (newStartDate.includes('T')) {
+        newStartDate = newStartDate.split('T')[0];
+    }
+
+    setCustomPlanStartDate(newStartDate);
+    
+    // Сброс плана и ошибок при смене семестра
     setStudyPlan(null);
     setError(null);
-    setIsLoading(false);
-  }, [semesterId]);
+    setIsLoading(false); // Сброс isLoading, так как новый запрос будет инициирован другим useEffect
+  }, [semesterId, semesterStartDate, semesterEndDate]); // Добавляем semesterStartDate и semesterEndDate в зависимости
 
   const handleFetchStudyPlan = useCallback(async () => {
     if (!semesterId || !token) {
@@ -97,13 +149,17 @@ export default function StudyPlanComponent({ semesterId, formattedSemesterName }
   }, [semesterId, token, ignoreCompleted, dailyHours, customPlanStartDate]);
 
   useEffect(() => {
-    if (semesterId && token) {
+    // Вызываем handleFetchStudyPlan, только если semesterId и token есть, 
+    // и customPlanStartDate уже была инициализирована (не пустая строка).
+    if (semesterId && token && customPlanStartDate) { 
       handleFetchStudyPlan();
     } else {
+      // Если нет semesterId или token, или customPlanStartDate еще не готова,
+      // сбрасываем план и ошибки, чтобы избежать показа неактуальных данных.
       setStudyPlan(null);
       setError(null);
     }
-  }, [semesterId, token, handleFetchStudyPlan, ignoreCompleted, dailyHours, customPlanStartDate]);
+  }, [semesterId, token, customPlanStartDate, ignoreCompleted, dailyHours, handleFetchStudyPlan]); // customPlanStartDate добавлена в зависимости явно
 
   const formatMinutes = (minutes: number) => {
     if (minutes < 60) return `${minutes} мин`;
@@ -152,7 +208,19 @@ export default function StudyPlanComponent({ semesterId, formattedSemesterName }
             type="date"
             id="customPlanStartDate"
             value={customPlanStartDate}
-            onChange={(e) => setCustomPlanStartDate(e.target.value)}
+            onChange={(e) => {
+                let newDate = e.target.value;
+                // Проверка, чтобы дата не выходила за рамки семестра при ручном изменении
+                if (semesterStartDate && new Date(newDate) < new Date(semesterStartDate)) {
+                    newDate = semesterStartDate.split('T')[0];
+                }
+                if (semesterEndDate && new Date(newDate) > new Date(semesterEndDate)) {
+                    newDate = semesterEndDate.split('T')[0];
+                }
+                setCustomPlanStartDate(newDate);
+            }}
+            min={semesterStartDate ? semesterStartDate.split('T')[0] : undefined} // Ограничение min
+            max={semesterEndDate ? semesterEndDate.split('T')[0] : undefined}   // Ограничение max
             className="w-full p-2 rounded bg-slate-700 border-slate-600 text-slate-200 focus:ring-sky-500 focus:border-sky-500"
           />
         </div>
@@ -305,13 +373,6 @@ export default function StudyPlanComponent({ semesterId, formattedSemesterName }
                 </div>
               ))}
             </div>
-            <button
-              onClick={handleFetchStudyPlan} 
-              disabled={isLoading}
-              className="mt-6 w-full bg-sky-700 hover:bg-sky-800 text-white font-semibold py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
-            >
-              {isLoading ? "Перестроение..." : "Перестроить план с текущими настройками"}
-            </button>
           </>
         )}
       </div>

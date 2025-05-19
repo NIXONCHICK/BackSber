@@ -101,6 +101,36 @@ function CoursesPageComponent() {
 
   const router = useRouter();
 
+  // Функция для получения дат начала и конца семестра
+  const getSemesterDates = (semesterId: string | null): { startDate?: string; endDate?: string } => {
+    if (!semesterId) return {};
+
+    const startDate = semesterId.split('T')[0]; // Пример: "2023-09-01"
+    const year = parseInt(startDate.substring(0, 4));
+    const month = parseInt(startDate.substring(5, 7));
+
+    let endDate;
+    if (month >= 9) { // Осенний семестр (сентябрь-январь)
+      endDate = `${year + 1}-01-31`;
+    } else if (month <= 2 && month > 0) { // Весенний семестр (февраль-июнь)
+        // Это условие нужно исправить, т.к. месяц с 1 (январь) до 12 (декабрь)
+        // Весенний семестр начинается, например, в феврале (month === 2)
+        endDate = `${year}-06-30`;
+    } else if (month > 2 && month <= 6) { // Весенний семестр, если начался позже февраля но до июня включительно
+         endDate = `${year}-06-30`;
+    } else { // Для других случаев (например, летний семестр или не стандартный)
+      // Можно добавить более сложную логику или вернуть что-то по умолчанию
+      // Пока просто +5 месяцев от даты начала для общей логики
+      const dateObj = new Date(startDate);
+      dateObj.setMonth(dateObj.getMonth() + 5);
+      const endYear = dateObj.getFullYear();
+      const endMonth = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+      const endDay = new Date(endYear, parseInt(endMonth, 10), 0).getDate().toString().padStart(2, '0'); // Последний день месяца
+      endDate = `${endYear}-${endMonth}-${endDay}`;
+    }
+    return { startDate, endDate };
+  };
+
   // Функция для форматирования имени семестра
   const formatSemesterName = (name: string) => {
     const parts = name.split(' '); // Разделяем по пробелу, чтобы отделить год(ы) от сезона
@@ -420,6 +450,17 @@ function CoursesPageComponent() {
   const currentSelectedSemesterData = semesters.find(s => s.id === selectedSemesterId);
 
   // --- Основная разметка страницы --- 
+  const selectedSemesterDetails = getSemesterDates(selectedSemesterId);
+  const formattedSelectedSemesterName = selectedSemesterId ? 
+    semesters.find(s => s.id === selectedSemesterId)?.name || selectedSemesterId :
+    null;
+  
+  // Для StudyPlanComponent, если имя уже содержит год, не добавляем его снова из formattedSemesterName
+  // formattedSemesterName может быть "Осень 2023-2024"
+  // selectedSemesterId это, например, "2023-09-01T00:00:00"
+  const studyPlanSemesterDisplayId = selectedSemesterId ? selectedSemesterId.split('T')[0] : null;
+  const studyPlanFormattedSemesterName = formattedSelectedSemesterName;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100 px-4 md:px-6 pt-2 md:pt-3 pb-4 md:pb-6 w-full">
       {/* Табы семестров */}
@@ -603,8 +644,10 @@ function CoursesPageComponent() {
         <div className="lg:w-1/2 flex flex-col">
            {/* Передаем selectedSemesterId и token в StudyPlanComponent */}
           <StudyPlanComponent 
-            semesterId={selectedSemesterId} 
-            formattedSemesterName={currentSelectedSemesterData ? formatSemesterName(currentSelectedSemesterData.name) : null}
+            semesterId={studyPlanSemesterDisplayId}
+            formattedSemesterName={studyPlanFormattedSemesterName}
+            semesterStartDate={selectedSemesterDetails.startDate}
+            semesterEndDate={selectedSemesterDetails.endDate}
           />
         </div>
       </div>
