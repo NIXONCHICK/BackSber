@@ -7,6 +7,7 @@ import back.services.EmailService;
 import back.services.OpenRouterService;
 import back.services.StudyPlanService;
 import back.dto.StudyPlanResponse;
+import back.dto.TaskForStudyPlanDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -156,9 +157,13 @@ public class TaskTimeEstimateController {
     @GetMapping("/study-plan/semester")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<StudyPlanResponse> getStudyPlanForSemester(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.util.Date requestDate) {
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.util.Date requestDate,
+            @RequestParam(required = false) Boolean ignoreCompleted,
+            @RequestParam(required = false) Integer dailyHours,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.util.Date customPlanStartDate) {
         try {
-            log.info("Получен запрос на генерацию учебного плана по семестру для даты: {}", requestDate);
+            log.info("Получен запрос на генерацию учебного плана по семестру для даты: {}, ignoreCompleted: {}, dailyHours: {}, customPlanStartDate: {}", 
+                        requestDate, ignoreCompleted, dailyHours, customPlanStartDate);
 
             Long userId;
             Person person;
@@ -176,13 +181,27 @@ public class TaskTimeEstimateController {
             java.sql.Date semesterSqlDate = openRouterService.determineSemesterDate(localRequestDate);
             LocalDate semesterStartDate = semesterSqlDate.toLocalDate();
 
-            List<Task> tasks = openRouterService.findTasksForUserBySemesterWithSource(userId, semesterSqlDate);
-            log.info("Найдено {} задач для пользователя {} в семестре с датой начала {}", tasks.size(), userId, semesterStartDate);
+            // Используем новый метод для получения задач со статусами
+            List<TaskForStudyPlanDto> tasksWithStatus = openRouterService.findTasksWithStatusForStudyPlan(userId, semesterSqlDate);
+            log.info("Найдено {} задач (со статусами) для пользователя {} в семестре с датой начала {}", tasksWithStatus.size(), userId, semesterStartDate);
 
-            // План всегда начинается с даты начала семестра
-            LocalDate planStartDate = semesterStartDate;
+            LocalDate planStartDate;
+            if (customPlanStartDate != null) {
+                planStartDate = customPlanStartDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+                log.info("Используется кастомная дата начала плана: {}", planStartDate);
+            } else {
+                planStartDate = semesterStartDate;
+                log.info("Используется дата начала семестра как дата начала плана: {}", planStartDate);
+            }
 
-            StudyPlanResponse studyPlan = studyPlanService.generateStudyPlan(tasks, semesterStartDate, planStartDate);
+            // Передаем новые параметры в studyPlanService
+            StudyPlanResponse studyPlan = studyPlanService.generateStudyPlan(
+                tasksWithStatus, 
+                semesterStartDate, 
+                planStartDate, 
+                ignoreCompleted, 
+                dailyHours
+            );
 
             if (person.getEmail() != null && studyPlan != null && !studyPlan.getPlannedDays().isEmpty()) {
                  log.info("Отправка письма с учебным планом на почту: {} (ОТКЛЮЧЕНО)", person.getEmail());

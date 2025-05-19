@@ -4,7 +4,7 @@ import back.dto.PlannedDayDto;
 import back.dto.PlannedTaskDto;
 import back.dto.StudyPlanResponse;
 import back.dto.StudyPlanWarningDto;
-import back.entities.Task;
+import back.dto.TaskForStudyPlanDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -13,6 +13,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -21,47 +22,57 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class StudyPlanService {
 
-    private static final int DEFAULT_MAX_MINUTES_PER_DAY = 3 * 60; // 180 минут
-    private static final int DEADLINE_MAX_MINUTES_PER_DAY = 6 * 60; // 360 минут
+    private static final int DEFAULT_DAILY_MINUTES_PER_DAY = 3 * 60; // 180 минут (дефолтное значение, если пользователь не указал)
+    private static final int DEADLINE_INCREASE_MAX_MINUTES_PER_DAY = 6 * 60; // Максимальный потолок для дней перед дедлайном
     private static final int DAYS_BEFORE_DEADLINE_TO_INCREASE_HOURS = 3;
 
-    public StudyPlanResponse generateStudyPlan(List<Task> tasks, LocalDate semesterStartDate, LocalDate planStartDate) {
+    public StudyPlanResponse generateStudyPlan(
+            List<TaskForStudyPlanDto> tasksDtos,
+            LocalDate semesterStartDate, 
+            LocalDate planStartDate, 
+            Boolean ignoreCompleted, 
+            Integer dailyHours) {
         List<PlannedDayDto> plannedDays = new ArrayList<>();
         List<StudyPlanWarningDto> warnings = new ArrayList<>();
 
-        List<Task> validTasks = tasks.stream()
-                .filter(task -> task.getEstimatedMinutes() != null && task.getEstimatedMinutes() > 0)
+        final int actualDailyMinutes = (dailyHours != null && dailyHours > 0) ? dailyHours * 60 : DEFAULT_DAILY_MINUTES_PER_DAY;
+
+        List<TaskForStudyPlanDto> filteredTasks = tasksDtos.stream()
+                .filter(taskDto -> taskDto.getEstimatedMinutes() != null && taskDto.getEstimatedMinutes() > 0)
+                .filter(taskDto -> {
+                    if (Boolean.TRUE.equals(ignoreCompleted)) {
+                        return !("Оценено".equalsIgnoreCase(taskDto.getStatus()) || "Зачет".equalsIgnoreCase(taskDto.getStatus()));
+                    }
+                    return true;
+                })
+                .filter(taskDto -> {
+                    if (taskDto.getDeadlineForPlanning() != null) {
+                        return !taskDto.getDeadlineForPlanning().toLocalDate().isBefore(planStartDate);
+                    }
+                    return true;
+                })
                 .collect(Collectors.toList());
 
-        validTasks.sort(Comparator
-            .comparing((Task task) -> task.getDeadline() == null)
-            .thenComparing(task -> {
-                if (task.getDeadline() != null) {
-                    return task.getDeadline().toInstant();
-                }
-                return null;
-            }, Comparator.nullsLast(Comparator.naturalOrder()))
-            .thenComparing(Task::getSource, Comparator.nullsLast(Comparator.naturalOrder()))
-            .thenComparing(Task::getId, Comparator.nullsLast(Comparator.naturalOrder()))
-            .thenComparing(Task::getEstimatedMinutes, Comparator.nullsLast(Comparator.naturalOrder()))
+        filteredTasks.sort(Comparator
+            .comparing((TaskForStudyPlanDto taskDto) -> taskDto.getDeadlineForPlanning() == null)
+            .thenComparing(TaskForStudyPlanDto::getDeadlineForPlanning, Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparing(TaskForStudyPlanDto::getId, Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparing(TaskForStudyPlanDto::getEstimatedMinutes, Comparator.nullsLast(Comparator.naturalOrder()))
         );
 
         LocalDate currentPlanningDate = planStartDate;
         int dayNumber = 1;
 
-        List<Integer> remainingMinutesForTasks = validTasks.stream()
-                .map(Task::getEstimatedMinutes)
+        List<Integer> remainingMinutesForTasks = filteredTasks.stream()
+                .map(TaskForStudyPlanDto::getEstimatedMinutes)
                 .collect(Collectors.toList());
 
-        for (int i = 0; i < validTasks.size(); i++) {
-            Task currentTask = validTasks.get(i);
+        for (int i = 0; i < filteredTasks.size(); i++) {
+            TaskForStudyPlanDto currentTaskDto = filteredTasks.get(i);
             int totalMinutesForCurrentTask = remainingMinutesForTasks.get(i);
             if (totalMinutesForCurrentTask <= 0) continue;
 
-            LocalDateTime taskDeadline = null;
-            if (currentTask.getDeadline() != null) {
-                taskDeadline = LocalDateTime.ofInstant(currentTask.getDeadline().toInstant(), ZoneId.systemDefault());
-            }
+            LocalDateTime taskDeadline = currentTaskDto.getDeadlineForPlanning();
 
             while (totalMinutesForCurrentTask > 0) {
                 PlannedDayDto currentDayPlan = findOrCreateDayPlan(plannedDays, currentPlanningDate, dayNumber);
@@ -75,22 +86,32 @@ public class StudyPlanService {
                     plannedDays.add(currentDayPlan);
                 }
 
-                int maxMinutesForToday = DEFAULT_MAX_MINUTES_PER_DAY;
+                int maxMinutesForThisDay = actualDailyMinutes;
                 long daysUntilDeadline = Long.MAX_VALUE;
 
                 if (taskDeadline != null) {
                     daysUntilDeadline = Duration.between(currentPlanningDate.atStartOfDay(), taskDeadline).toDays();
                     if (daysUntilDeadline <= DAYS_BEFORE_DEADLINE_TO_INCREASE_HOURS && daysUntilDeadline >= 0) {
                         int minutesNeededPerDayToMeetDeadline = (int) Math.ceil((double) totalMinutesForCurrentTask / (daysUntilDeadline + 1));
-                        if (minutesNeededPerDayToMeetDeadline > maxMinutesForToday) {
-                            maxMinutesForToday = Math.min(DEADLINE_MAX_MINUTES_PER_DAY, Math.max(maxMinutesForToday, minutesNeededPerDayToMeetDeadline));
+                        if (minutesNeededPerDayToMeetDeadline > actualDailyMinutes) {
+                           maxMinutesForThisDay = Math.min(DEADLINE_INCREASE_MAX_MINUTES_PER_DAY, Math.max(actualDailyMinutes, minutesNeededPerDayToMeetDeadline));
+                        } else {
+                           maxMinutesForThisDay = Math.max(actualDailyMinutes, minutesNeededPerDayToMeetDeadline); 
                         }
+                        maxMinutesForThisDay = Math.max(maxMinutesForThisDay, Math.min(actualDailyMinutes, minutesNeededPerDayToMeetDeadline));
+                        maxMinutesForThisDay = Math.min(maxMinutesForThisDay, DEADLINE_INCREASE_MAX_MINUTES_PER_DAY);
+
                     } else if (daysUntilDeadline < 0) {
-                        maxMinutesForToday = DEFAULT_MAX_MINUTES_PER_DAY;
+                        warnings.add(StudyPlanWarningDto.builder()
+                                .taskId(currentTaskDto.getId())
+                                .taskName(currentTaskDto.getName())
+                                .message("Дедлайн задачи ('" + taskDeadline.toLocalDate() + "') уже прошел, но она все еще планируется.")
+                                .build());
                     }
                 }
                 
-                int availableMinutesToday = maxMinutesForToday - currentDayPlan.getTotalMinutesScheduledThisDay();
+                int availableMinutesToday = maxMinutesForThisDay - currentDayPlan.getTotalMinutesScheduledThisDay();
+                
                 if (availableMinutesToday <= 0) {
                     currentPlanningDate = currentPlanningDate.plusDays(1);
                     dayNumber++;
@@ -99,16 +120,16 @@ public class StudyPlanService {
 
                 int minutesToScheduleForTaskToday = Math.min(totalMinutesForCurrentTask, availableMinutesToday);
 
-                String taskName = currentTask.getName();
+                String taskName = currentTaskDto.getName();
                 String suffixToRemove = " Задание";
                 if (taskName != null && taskName.endsWith(suffixToRemove)) {
                     taskName = taskName.substring(0, taskName.length() - suffixToRemove.length());
                 }
 
                 PlannedTaskDto plannedTaskDto = PlannedTaskDto.builder()
-                        .taskId(currentTask.getId())
+                        .taskId(currentTaskDto.getId())
                         .taskName(taskName)
-                        .subjectName(currentTask.getSubject() != null ? currentTask.getSubject().getName() : "Без предмета")
+                        .subjectName(currentTaskDto.getSubjectName())
                         .minutesScheduledToday(minutesToScheduleForTaskToday)
                         .deadline(taskDeadline)
                         .build();
@@ -119,50 +140,62 @@ public class StudyPlanService {
 
                 remainingMinutesForTasks.set(i, totalMinutesForCurrentTask);
 
-                if (totalMinutesForCurrentTask <= 0 || currentDayPlan.getTotalMinutesScheduledThisDay() >= maxMinutesForToday) {
-                    if (currentDayPlan.getTotalMinutesScheduledThisDay() >= maxMinutesForToday && totalMinutesForCurrentTask > 0) {
-                        currentPlanningDate = currentPlanningDate.plusDays(1);
-                        dayNumber++;
-                    }
+                if (currentDayPlan.getTotalMinutesScheduledThisDay() >= maxMinutesForThisDay && totalMinutesForCurrentTask > 0) {
+                    currentPlanningDate = currentPlanningDate.plusDays(1);
+                    dayNumber++;
+                } else if (currentDayPlan.getTotalMinutesScheduledThisDay() >= maxMinutesForThisDay && totalMinutesForCurrentTask <= 0){
+                    currentPlanningDate = currentPlanningDate.plusDays(1);
+                    dayNumber++;
                 }
-            }
-            if (taskDeadline != null && currentPlanningDate.atStartOfDay().isAfter(taskDeadline) && remainingMinutesForTasks.get(i) <=0) {
-                 warnings.add(StudyPlanWarningDto.builder()
-                                .taskId(currentTask.getId())
-                                .taskName(currentTask.getName())
-                                .message("Задача была завершена " + currentPlanningDate +
-                                         ", но ее дедлайн был " + taskDeadline.toLocalDate())
-                                .build());
             }
         }
 
-        List<Integer> finalRemainingMinutes = tasks.stream()
-                .map(task -> (task.getEstimatedMinutes() != null ? task.getEstimatedMinutes() : 0))
-                .collect(Collectors.toList());
+        List<Integer> initialEstimatedMinutes = filteredTasks.stream()
+            .map(dto -> dto.getEstimatedMinutes() != null ? dto.getEstimatedMinutes() : 0)
+            .collect(Collectors.toList());
+
+        List<Integer> totalScheduledMinutesPerTask = new ArrayList<>(Collections.nCopies(filteredTasks.size(), 0));
 
         for (PlannedDayDto day : plannedDays) {
             for (PlannedTaskDto plannedTask : day.getTasks()) {
                 int taskIndex = -1;
-                for(int k=0; k < tasks.size(); k++) {
-                    if(tasks.get(k).getId().equals(plannedTask.getTaskId())) {
+                for(int k=0; k < filteredTasks.size(); k++) {
+                    if(filteredTasks.get(k).getId().equals(plannedTask.getTaskId())) {
                         taskIndex = k;
                         break;
                     }
                 }
                 if (taskIndex != -1) {
-                    int alreadyScheduledOnThisDayInMinutes = plannedTask.getMinutesScheduledToday();
-                    plannedTask.setMinutesRemainingForTask(Math.max(0, finalRemainingMinutes.get(taskIndex) - alreadyScheduledOnThisDayInMinutes));
-                    finalRemainingMinutes.set(taskIndex, Math.max(0, finalRemainingMinutes.get(taskIndex) - alreadyScheduledOnThisDayInMinutes));
+                    totalScheduledMinutesPerTask.set(taskIndex, totalScheduledMinutesPerTask.get(taskIndex) + plannedTask.getMinutesScheduledToday());
                 }
             }
         }
-        plannedDays.removeIf(day -> day.getTasks().isEmpty());
+        
+        for (PlannedDayDto day : plannedDays) {
+            for (PlannedTaskDto plannedTask : day.getTasks()) {
+                int taskIndex = -1;
+                 for(int k=0; k < filteredTasks.size(); k++) {
+                    if(filteredTasks.get(k).getId().equals(plannedTask.getTaskId())) {
+                        taskIndex = k;
+                        break;
+                    }
+                }
+                if (taskIndex != -1) {
+                    int totalEstimate = initialEstimatedMinutes.get(taskIndex);
+                    int totalScheduled = totalScheduledMinutesPerTask.get(taskIndex);
+                    plannedTask.setMinutesRemainingForTask(Math.max(0, totalEstimate - totalScheduled));
+                }
+            }
+        }
 
+        plannedDays.removeIf(day -> day.getTasks().isEmpty());
+        
         return StudyPlanResponse.builder()
                 .semesterStartDate(semesterStartDate)
+                .planStartDate(planStartDate)
                 .plannedDays(plannedDays)
                 .warnings(warnings)
-                .totalTasksConsideredForPlanning(validTasks.size())
+                .totalTasksConsideredForPlanning(filteredTasks.size())
                 .build();
     }
 
@@ -170,6 +203,6 @@ public class StudyPlanService {
         return plannedDays.stream()
                 .filter(day -> day.getDate().equals(date))
                 .findFirst()
-                .orElse(null); // Если не нашли, вернем null, чтобы создать новый
+                .orElse(null);
     }
 } 

@@ -5,6 +5,11 @@ import back.entities.Task;
 import back.entities.TaskAttachment;
 import back.entities.TaskSource;
 import back.repositories.TaskRepository;
+import back.repositories.StudentTaskAssignmentRepository;
+import back.repositories.TaskGradingRepository;
+import back.entities.StudentTaskAssignment;
+import back.entities.TaskGrading;
+import back.dto.TaskForStudyPlanDto;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
@@ -17,6 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -28,6 +35,8 @@ public class OpenRouterService {
 
     private final TaskRepository taskRepository;
     private final MoodleAssignmentService moodleAssignmentService;
+    private final StudentTaskAssignmentRepository studentTaskAssignmentRepository;
+    private final TaskGradingRepository taskGradingRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     // OpenRouter Configuration
@@ -589,5 +598,48 @@ public class OpenRouterService {
             // Можно добавить более специфичную обработку ошибок, если необходимо
             throw new RuntimeException("Ошибка при обращении к сервису анализа семестра: " + e.getMessage(), e);
         }
+    }
+
+    // Новый метод для получения задач со статусами
+    public List<TaskForStudyPlanDto> findTasksWithStatusForStudyPlan(Long userId, java.sql.Date semesterDate) {
+        List<Task> tasks = findTasksForUserBySemesterWithSource(userId, semesterDate); // Используем существующий метод для получения задач
+        List<TaskForStudyPlanDto> taskDtos = new ArrayList<>();
+
+        for (Task task : tasks) {
+            String status = "Не сдано"; // Статус по умолчанию
+            StudentTaskAssignment assignment = studentTaskAssignmentRepository
+                    .findByTask_IdAndPerson_Id(task.getId(), userId)
+                    .orElse(null);
+
+            if (assignment != null) {
+                TaskGrading grading = taskGradingRepository.findByAssignment(assignment);
+                if (grading != null) {
+                    if (grading.getMark() != null || (grading.getGradingStatus() != null && (grading.getGradingStatus().toLowerCase().contains("оценен") || grading.getGradingStatus().toLowerCase().contains("зачет")))) {
+                        status = "Оценено";
+                        if (grading.getGradingStatus() != null && grading.getGradingStatus().toLowerCase().contains("зачет")) {
+                            status = "Зачет";
+                        }
+                    } else if (grading.getSubmissionStatus() != null && !grading.getSubmissionStatus().isEmpty() && !grading.getSubmissionStatus().toLowerCase().contains("нет ответа")) {
+                        status = "Сдано";
+                    }
+                }
+            }
+
+            LocalDateTime deadlineForPlanning = null;
+            if (task.getDeadline() != null) {
+                deadlineForPlanning = LocalDateTime.ofInstant(task.getDeadline().toInstant(), ZoneId.systemDefault());
+            }
+
+            taskDtos.add(TaskForStudyPlanDto.builder()
+                    .id(task.getId())
+                    .name(task.getName())
+                    .originalDeadline(task.getDeadline()) // Сохраняем оригинальный Date
+                    .deadlineForPlanning(deadlineForPlanning)
+                    .estimatedMinutes(task.getEstimatedMinutes())
+                    .subjectName(task.getSubject() != null ? task.getSubject().getName() : "Без предмета")
+                    .status(status)
+                    .build());
+        }
+        return taskDtos;
     }
 } 
