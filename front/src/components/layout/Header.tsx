@@ -31,14 +31,14 @@ export default function Header() {
           DeadlineMaster
         </Link>
         <div className="flex items-center space-x-4">
-          <Link href="/courses" className="hover:text-sky-400 transition-colors">
+          {/* <Link href="/courses" className="hover:text-sky-400 transition-colors">
             Предметы
-          </Link>
+          </Link> */}
           {!isLoading && (
             <>
               {isAuthenticated && user ? (
                 <>
-                  <span className="text-sm text-slate-300">Привет, {user.email}!</span>
+                  {/* <span className="text-sm text-slate-300">Привет, {user.email}!</span> */}
                   <Link href="/profile" className="text-sm hover:text-sky-400 transition-colors">
                     Профиль
                   </Link>

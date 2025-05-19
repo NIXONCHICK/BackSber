@@ -185,8 +185,8 @@ public class TaskTimeEstimateController {
             StudyPlanResponse studyPlan = studyPlanService.generateStudyPlan(tasks, semesterStartDate, planStartDate);
 
             if (person.getEmail() != null && studyPlan != null && !studyPlan.getPlannedDays().isEmpty()) {
-                 log.info("Отправка письма с учебным планом на почту: {}", person.getEmail());
-                 emailService.sendStudyPlanNotification(person.getEmail(), studyPlan, semesterStartDate);
+                 log.info("Отправка письма с учебным планом на почту: {} (ОТКЛЮЧЕНО)", person.getEmail());
+                 // emailService.sendStudyPlanNotification(person.getEmail(), studyPlan, semesterStartDate);
             }
 
             return ResponseEntity.ok(studyPlan);

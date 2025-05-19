@@ -24,3 +24,31 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Стили для кастомного скроллбара */
+/* Для WebKit-браузеров (Chrome, Safari, Edge, Opera) */
+::-webkit-scrollbar {
+  width: 8px; /* Ширина скроллбара */
+  height: 8px; /* Высота скроллбара для горизонтальной прокрутки */
+}
+
+::-webkit-scrollbar-track {
+  background: #1f2937; /* Цвет фона трека (темно-серый, как фон элементов) */
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #4b5563; /* Цвет ползунка (более светлый серый) */
+  border-radius: 10px;
+  border: 2px solid #1f2937; /* Граница, чтобы создать эффект отступа от трека */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #6b7280; /* Цвет ползунка при наведении */
+}
+
+/* Для Firefox */
+* {
+  scrollbar-width: thin; /* "auto" или "thin" */
+  scrollbar-color: #4b5563 #1f2937; /* цвет ползунка и цвет трека */
+}

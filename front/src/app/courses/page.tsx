@@ -5,6 +5,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext'; // Если понадобится для API-запросов в будущем
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/solid'; // Иконки для аккордеона
 import { useRouter } from 'next/navigation';
+import StudyPlanComponent from '@/components/features/StudyPlanComponent'; // <--- Импорт нового компонента
 
 // Типы данных, соответствующие DTO с бэкенда
 interface TaskDto {
@@ -100,39 +101,60 @@ function CoursesPageComponent() {
 
   const router = useRouter();
 
+  // Функция для форматирования имени семестра
+  const formatSemesterName = (name: string) => {
+    const parts = name.split(' '); // Разделяем по пробелу, чтобы отделить год(ы) от сезона
+    if (parts.length < 2) return name; // Если формат не "ГГГГ Сезон" или "ГГГГ-ГГГГ Сезон", возвращаем как есть
+
+    const yearPart = parts.slice(0, parts.length - 1).join(' '); // Все, кроме последнего слова (сезона)
+    const seasonPart = parts[parts.length - 1]; // Последнее слово (сезон)
+
+    if (yearPart.includes('-')) {
+      const firstYear = yearPart.split('-')[0];
+      return `${firstYear} ${seasonPart}`;
+    }
+    return name; // Если нет дефиса, возвращаем как есть
+  };
+
   console.log("CoursesPageComponent: Initial render. Token:", token);
 
   // Загрузка семестров
   useEffect(() => {
-    console.log("CoursesPageComponent: Semesters useEffect triggered. Token:", token);
+    console.log("CoursesPageComponent: Semesters useEffect triggered. Token:", token, "Current selectedSemesterId:", selectedSemesterId);
     if (!token) {
       console.log("CoursesPageComponent: No token, skipping semester fetch.");
       setSemestersLoading(false);
       return;
     }
-    const fetchSemesters = async () => {
-      console.log("CoursesPageComponent: fetchSemesters called.");
-      setSemestersLoading(true);
+
+    let isMounted = true; 
+
+    const fetchSemestersData = async () => {
+      console.log("CoursesPageComponent: fetchSemestersData called.");
+      
+      // Устанавливаем semestersLoading только если это действительно нужно (например, еще не загружено)
+      // или если это первый вызов (semesters.length === 0) и еще не loading.
+      // Эта проверка помогает избежать ненужного мерцания лоадера при повторных вызовах в StrictMode, если данные уже есть.
+      if (semesters.length === 0 && !semestersLoading) {
+           setSemestersLoading(true);
+      }
       setSemestersError(null);
-      setSelectedSemesterId(null);
-      setSemesters(prevSemesters => prevSemesters.map(s => ({ ...s, subjects: undefined, subjectsLoading: true, subjectsError: null })));
-      setEstimatesRefreshing(false);
-      setEstimatesRefreshError(null);
-      setEstimatesRefreshSuccess(null);
 
       try {
-        console.log("CoursesPageComponent: Fetching /api/semesters with token:", token ? 'present' : 'absent');
+        console.log("CoursesPageComponent: Fetching /api/semesters...");
         const response = await fetch('/api/semesters', {
           headers: { 'Authorization': `Bearer ${token}` },
         });
-        console.log("CoursesPageComponent: /api/semesters response status:", response.status);
+        
         if (!response.ok) {
           if (response.status === 401) {
-            console.error("CoursesPageComponent: Ошибка 401 при загрузке семестров. Перенаправление на /login");
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            localStorage.removeItem('needsInitialParsing');
-            router.push('/login');
+            if (isMounted) {
+              console.error("CoursesPageComponent: Ошибка 401 при загрузке семестров. Перенаправление на /login");
+              localStorage.removeItem('token');
+              localStorage.removeItem('user');
+              localStorage.removeItem('needsInitialParsing');
+              router.push('/login');
+            }
             return;
           }
           const errorText = await response.text();
@@ -140,23 +162,45 @@ function CoursesPageComponent() {
           throw new Error(`Ошибка загрузки семестров: ${response.status} ${errorText}`);
         }
         const data: SemesterDto[] = await response.json();
-        console.log("CoursesPageComponent: Semesters data received:", data);
-        setSemesters(data);
-        if (data.length > 0 && !semesters.find(s => s.id === selectedSemesterId)) {
-          console.log("CoursesPageComponent: Setting selectedSemesterId to first semester:", data[0].id);
-          setSelectedSemesterId(data[0].id);
-        } else if (data.length === 0) {
-          setSelectedSemesterId(null);
+        
+        if (isMounted) {
+          console.log("CoursesPageComponent: Semesters data received:", data);
+          setSemesters(data);
+
+          const currentIdInState = selectedSemesterId; 
+          let newSelectedIdToSet = currentIdInState;
+
+          if (data.length > 0) {
+            const isValidCurrentId = currentIdInState && data.some(s => s.id === currentIdInState);
+            if (!isValidCurrentId) { 
+              console.log("CoursesPageComponent: Current selectedId '", currentIdInState, "' is null or not valid. Setting to first semester:", data[0].id);
+              newSelectedIdToSet = data[0].id;
+            }
+          } else { 
+            console.log("CoursesPageComponent: No semester data received. Setting selectedId to null.");
+            newSelectedIdToSet = null;
+          }
+          
+          if (newSelectedIdToSet !== currentIdInState) { 
+              console.log("CoursesPageComponent: setSelectedSemesterId to '", newSelectedIdToSet, "' (was '", currentIdInState, "')");
+              setSelectedSemesterId(newSelectedIdToSet);
+          }
+          setSemestersLoading(false); 
         }
       } catch (error) {
-        console.error("CoursesPageComponent: Catch block - Error loading semesters:", error);
-        setSemestersError(error instanceof Error ? error.message : String(error));
-      } finally {
-        console.log("CoursesPageComponent: fetchSemesters finally block. Setting semestersLoading to false.");
-        setSemestersLoading(false);
+        if (isMounted) {
+          console.error("CoursesPageComponent: Catch block - Error loading semesters:", error);
+          setSemestersError(error instanceof Error ? error.message : String(error));
+          setSemestersLoading(false);
+        }
       }
     };
-    fetchSemesters();
+
+    fetchSemestersData();
+
+    return () => {
+      isMounted = false; 
+    };
   }, [token, router]);
 
   // Загрузка предметов для выбранного семестра
@@ -259,7 +303,7 @@ function CoursesPageComponent() {
         return s;
       }));
     }
-  }, [expandedSubjectId, selectedSemesterId, token]); // semesters убрано из зависимостей
+  }, [expandedSubjectId, selectedSemesterId, token]);
 
   const getStatusColor = (status: string) => {
     if (!status) return 'text-slate-400';
@@ -377,194 +421,198 @@ function CoursesPageComponent() {
 
   // --- Основная разметка страницы --- 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100 p-6">
-      <header className="mb-8">
-        <div className="mb-6 text-center">
-          <h1 className="text-4xl font-bold text-sky-400">Предметы</h1>
-        </div>
-      </header>
-
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100 px-4 md:px-6 pt-2 md:pt-3 pb-4 md:pb-6 w-full">
       {/* Табы семестров */}
-      <nav className="mb-8 flex justify-center space-x-2 sm:space-x-4 flex-wrap">
+      <nav className="mb-6 md:mb-8 flex justify-center space-x-1 sm:space-x-2 md:space-x-4 flex-wrap">
         {semesters.map((semester) => (
           <button
             key={semester.id}
             onClick={() => {
-              console.log("CoursesPageComponent: Semester tab clicked:", semester.id);
               setSelectedSemesterId(semester.id);
               setExpandedSubjectId(null); 
-              setEstimatesRefreshError(null); // Сбрасываем ошибку и сообщение об успехе
+              setEstimatesRefreshError(null);
               setEstimatesRefreshSuccess(null);
             }}
-            disabled={currentSelectedSemesterData?.subjectsLoading && selectedSemesterId === semester.id} // Блокируем активный таб во время загрузки его предметов
-            className={`mb-2 px-3 py-2 sm:px-6 sm:py-3 text-sm sm:text-base font-medium rounded-lg transition-all duration-300 disabled:opacity-50 disabled:transform-none
+            disabled={currentSelectedSemesterData?.subjectsLoading && selectedSemesterId === semester.id}
+            className={`mb-2 px-2 py-1 sm:px-4 sm:py-2 md:px-6 md:py-3 text-xs sm:text-sm md:text-base font-medium rounded-lg transition-all duration-300 disabled:opacity-50 disabled:transform-none
               ${selectedSemesterId === semester.id 
                 ? 'bg-sky-600 text-white shadow-lg transform scale-105' 
                 : 'bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-sky-300'
               }`}
           >
-            {semester.name}
+            {formatSemesterName(semester.name)}
           </button>
         ))}
       </nav>
 
-      {/* Индикаторы загрузки/ошибок для предметов */}
-      {selectedSemesterId && currentSelectedSemesterData?.subjectsLoading && (
-        <p className="text-center text-sky-400 text-lg my-4">Загрузка предметов для семестра "{currentSelectedSemesterData?.name}"...</p>
-      )}
-      {selectedSemesterId && currentSelectedSemesterData?.subjectsError && (
-        <div className="text-center text-red-500 text-lg my-4 p-4 bg-red-900/30 rounded-md">
-            <p className="font-semibold">Ошибка загрузки предметов:</p>
-            <p>{currentSelectedSemesterData.subjectsError}</p>
-        </div>
-      )}
-
-      {/* Список предметов */}
-      {currentSelectedSemesterData && !currentSelectedSemesterData.subjectsLoading && !currentSelectedSemesterData.subjectsError && (
-        <div className="space-y-6 max-w-4xl mx-auto">
-          {!currentSelectedSemesterData.subjects || currentSelectedSemesterData.subjects.length === 0 && (
-            <p className="text-center text-slate-400 text-lg">В семестре "{currentSelectedSemesterData.name}" нет предметов.</p>
+      {/* Основной контент: Предметы (слева) и План (справа) */}
+      <div className="flex flex-col lg:flex-row gap-4 md:gap-6">
+        {/* Левая колонка: Предметы */}
+        <div className="lg:w-1/2 flex flex-col">
+          {selectedSemesterId && currentSelectedSemesterData?.subjectsLoading && (
+            <p className="text-center text-sky-400 text-lg my-4">Загрузка предметов для семестра "{currentSelectedSemesterData?.name}"...</p>
           )}
-          {currentSelectedSemesterData.subjects?.map((subject) => (
-            <div key={subject.id} className="bg-slate-800 shadow-xl rounded-lg overflow-hidden">
-              <button
-                onClick={() => handleToggleSubject(subject.id)}
-                className="w-full flex justify-between items-center p-5 sm:p-6 text-left hover:bg-slate-700/50 transition-colors duration-200 focus:outline-none"
-              >
-                <h2 className="text-xl sm:text-2xl font-semibold text-sky-400">{subject.name}</h2>
-                {subject.tasksLoading ? (
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-sky-400"></div>
-                ) : expandedSubjectId === subject.id ? (
-                  <ChevronUpIcon className="h-6 w-6 text-sky-500" />
-                ) : (
-                  <ChevronDownIcon className="h-6 w-6 text-sky-500" />
-                )}
-              </button>
-              
-              {/* Аккордеон с заданиями */}
-              {expandedSubjectId === subject.id && (
-                <div className="border-t border-slate-700 px-5 sm:px-6 py-4 bg-slate-800/50">
-                  {subject.tasksLoading && <p className="text-sky-400">Загрузка заданий...</p>}
-                  {subject.tasksError && <p className="text-red-500">Ошибка загрузки заданий: {subject.tasksError}</p>}
-                  {!subject.tasksLoading && !subject.tasksError && (
-                    !subject.tasks || subject.tasks.length === 0 ? (
-                      <p className="text-slate-400">По этому предмету пока нет заданий.</p>
+          {selectedSemesterId && currentSelectedSemesterData?.subjectsError && (
+            <div className="text-center text-red-500 text-lg my-4 p-4 bg-red-900/30 rounded-md">
+                <p className="font-semibold">Ошибка загрузки предметов:</p>
+                <p>{currentSelectedSemesterData.subjectsError}</p>
+            </div>
+          )}
+
+          {currentSelectedSemesterData && !currentSelectedSemesterData.subjectsLoading && !currentSelectedSemesterData.subjectsError && (
+            <div className="space-y-4 md:space-y-6 flex-grow"> {/* Убрал max-w-4xl mx-auto, добавил flex-grow */}
+              {!currentSelectedSemesterData.subjects || currentSelectedSemesterData.subjects.length === 0 && (
+                <div className="p-4 bg-slate-800 rounded-lg shadow-lg h-full flex items-center justify-center">
+                   <p className="text-center text-slate-400 text-lg">В семестре "{currentSelectedSemesterData.name}" нет предметов.</p>
+                </div>
+              )}
+              {currentSelectedSemesterData.subjects?.map((subject) => (
+                <div key={subject.id} className="bg-slate-800 shadow-xl rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => handleToggleSubject(subject.id)}
+                    className="w-full flex justify-between items-center p-4 sm:p-5 text-left hover:bg-slate-700/50 transition-colors duration-200 focus:outline-none"
+                  >
+                    <h2 className="text-lg sm:text-xl font-semibold text-sky-400">{subject.name}</h2>
+                    {subject.tasksLoading ? (
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-sky-400"></div>
+                    ) : expandedSubjectId === subject.id ? (
+                      <ChevronUpIcon className="h-5 w-5 sm:h-6 sm:w-6 text-sky-500" />
                     ) : (
-                      <ul className="space-y-3">
-                        {subject.tasks?.map((task) => {
-                          let displayedStatusText: string;
-                          let displayedGradeText: string | null = null;
-                          let statusColorClass: string;
+                      <ChevronDownIcon className="h-5 w-5 sm:h-6 sm:w-6 text-sky-500" />
+                    )}
+                  </button>
+                  
+                  {expandedSubjectId === subject.id && (
+                    <div className="border-t border-slate-700 px-4 sm:px-5 py-3 sm:py-4 bg-slate-800/50">
+                      {subject.tasksLoading && <p className="text-sky-400">Загрузка заданий...</p>}
+                      {subject.tasksError && <p className="text-red-500">Ошибка загрузки заданий: {subject.tasksError}</p>}
+                      {!subject.tasksLoading && !subject.tasksError && (
+                        !subject.tasks || subject.tasks.length === 0 ? (
+                          <p className="text-slate-400">По этому предмету пока нет заданий.</p>
+                        ) : (
+                          <ul className="space-y-2 sm:space-y-3">
+                            {subject.tasks?.map((task) => {
+                              let displayedStatusText: string;
+                              let displayedGradeText: string | null = null;
+                              let statusColorClass: string;
 
-                          const originalBackendStatus = task.status;
-                          const gradeFromBackend = task.grade ? String(task.grade).trim() : null;
+                              const originalBackendStatus = task.status;
+                              const gradeFromBackend = task.grade ? String(task.grade).trim() : null;
 
-                          const estimatedTimeText = task.estimatedMinutes 
-                            ? `${Math.floor(task.estimatedMinutes / 60)} ч ${task.estimatedMinutes % 60} мин`
-                            : null;
+                              const estimatedTimeText = task.estimatedMinutes 
+                                ? `${Math.floor(task.estimatedMinutes / 60)} ч ${task.estimatedMinutes % 60} мин`
+                                : null;
 
-                          if (gradeFromBackend === null) {
-                            // Случай 1: Оценки нет вообще (null)
-                            displayedStatusText = "Не оценено";
-                            statusColorClass = getStatusColor("Не сдано"); // Используем цвет для "Не сдано" (красный)
-                          } else if (gradeFromBackend.toLowerCase() === "оценено" || gradeFromBackend.toLowerCase() === "зачет") {
-                            // Случай 2: Оценка - это "Оценено" или "Зачет" (нет конкретного балла)
-                            displayedStatusText = "Не оценено";
-                            statusColorClass = getStatusColor("Не сдано"); // Используем цвет для "Не сдано" (красный)
-                            // displayedGradeText остается null, чтобы не показывать "Оценка: Оценено"
-                          } else {
-                            // Случай 3: Есть конкретная оценка (например, "5/5")
-                            displayedStatusText = originalBackendStatus; // Используем статус с бэкенда
-                            statusColorClass = getStatusColor(originalBackendStatus); // Цвет согласно статусу с бэкенда
-                            displayedGradeText = gradeFromBackend; // Отображаем эту конкретную оценку
-                          }
+                              if (gradeFromBackend === null) {
+                                displayedStatusText = "Не оценено";
+                                statusColorClass = getStatusColor("Не сдано");
+                              } else if (gradeFromBackend.toLowerCase() === "оценено" || gradeFromBackend.toLowerCase() === "зачет") {
+                                displayedStatusText = "Не оценено"; // Или можно использовать task.status если он более информативен
+                                statusColorClass = getStatusColor("Не сдано"); // Или свой цвет для такого состояния
+                              } else {
+                                displayedStatusText = originalBackendStatus;
+                                statusColorClass = getStatusColor(originalBackendStatus);
+                                displayedGradeText = gradeFromBackend;
+                              }
 
-                          return (
-                            <li key={task.id} className="p-3 bg-slate-700/70 rounded-md shadow">
-                              <div className="flex flex-col sm:flex-row justify-between items-start mb-1">
-                                <h3 className="text-lg font-medium text-slate-100 mb-1 sm:mb-0">
-                                  {task.name.endsWith(" Задание") ? task.name.slice(0, -8) : task.name}
-                                </h3>
-                                {task.deadline && (
-                                  <span className="text-sm text-slate-400 whitespace-nowrap">
-                                    Срок: {new Date(task.deadline + 'T00:00:00').toLocaleDateString('ru-RU')}
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end text-sm mt-1">
-                                <span className={`font-semibold ${statusColorClass}`}>
-                                  {displayedStatusText}
-                                </span>
-                                {estimatedTimeText && (
-                                  <span className="text-slate-400 mt-1 sm:mt-0 sm:ml-4 italic">
-                                    Оценка ИИ: ~{estimatedTimeText}
-                                  </span>
-                                )}
-                                {displayedGradeText && (
-                                  <span className="text-slate-300 mt-1 sm:mt-0">
-                                     {estimatedTimeText ? ' / ' : ''}Оценка: {displayedGradeText}
-                                  </span>
-                                )}
-                              </div>
-                              {/* Добавляем отображение объяснения оценки от ИИ */} 
-                              {task.timeEstimateExplanation && (
-                                <div className="mt-2 text-sm text-slate-400 pl-2 border-l-2 border-slate-600">
-                                  <p className="italic">{task.timeEstimateExplanation}</p>
-                                </div>
-                              )}
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    )
+                              return (
+                                <li key={task.id} className="p-2 sm:p-3 bg-slate-700/70 rounded-md shadow">
+                                  <div className="flex flex-col sm:flex-row justify-between items-start mb-1">
+                                    <h3 className="text-base sm:text-lg font-medium text-slate-100 mb-1 sm:mb-0">
+                                      {task.name.endsWith(" Задание") ? task.name.slice(0, -8) : task.name}
+                                    </h3>
+                                    {task.deadline && (
+                                      <span className="text-xs sm:text-sm text-slate-400 whitespace-nowrap">
+                                        Срок: {new Date(task.deadline + 'T00:00:00').toLocaleDateString('ru-RU')}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end text-xs sm:text-sm mt-1">
+                                    <span className={`font-semibold ${statusColorClass}`}>
+                                      {displayedStatusText}
+                                    </span>
+                                    {estimatedTimeText && (
+                                      <span className="text-slate-400 mt-1 sm:mt-0 sm:ml-2 md:ml-4 italic">
+                                        Оценка ИИ: ~{estimatedTimeText}
+                                      </span>
+                                    )}
+                                    {displayedGradeText && (
+                                      <span className="text-slate-300 mt-1 sm:mt-0">
+                                         {estimatedTimeText ? ' / ' : ''}Оценка: {displayedGradeText}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {task.timeEstimateExplanation && (
+                                    <div className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-slate-400 pl-2 border-l-2 border-slate-600">
+                                      <p className="italic">{task.timeEstimateExplanation}</p>
+                                    </div>
+                                  )}
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {currentSelectedSemesterData?.subjects && currentSelectedSemesterData.subjects.length > 0 && (
+                <div className="mt-6 md:mt-8 pt-4 md:pt-6 border-t border-slate-700 text-center">
+                  <button
+                    onClick={handleRefreshTaskEstimates}
+                    disabled={estimatesRefreshing}
+                    className="w-full max-w-md mx-auto flex justify-center bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 px-5 md:py-3 md:px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition-all duration-300 ease-in-out transform hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    {estimatesRefreshing ? (
+                      <span className="flex items-center">
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Обновляем оценки...
+                      </span>
+                    ) : (
+                      'Обновить оценки времени задач нейросетью'
+                    )}
+                  </button>
+                  {estimatesRefreshError && (
+                    <div className="mt-4 md:mt-6 p-3 md:p-4 bg-red-900/30 border border-red-700 rounded-md text-red-400 max-w-md mx-auto">
+                      <p className="font-semibold">Ошибка обновления оценок:</p>
+                      <p>{estimatesRefreshError}</p> 
+                    </div>
+                  )}
+                  {estimatesRefreshSuccess && !estimatesRefreshError && (
+                    <div className="mt-4 md:mt-6 p-3 md:p-4 bg-green-900/30 border border-green-700 rounded-md text-green-400 max-w-md mx-auto">
+                      <p>{estimatesRefreshSuccess}</p>
+                    </div>
                   )}
                 </div>
               )}
             </div>
-          ))}
-
-          {/* Кнопка и область для анализа семестра -> Обновления оценок */}
-          {currentSelectedSemesterData?.subjects && currentSelectedSemesterData.subjects.length > 0 && (
-            <div className="mt-8 pt-6 border-t border-slate-700 text-center">
-              <button
-                onClick={handleRefreshTaskEstimates}
-                disabled={estimatesRefreshing}
-                className="w-full max-w-md mx-auto flex justify-center bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition-all duration-300 ease-in-out transform hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {estimatesRefreshing ? (
-                  <span className="flex items-center">
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Обновляем оценки...
-                  </span>
-                ) : (
-                  'Обновить оценки времени задач нейросетью'
-                )}
-              </button>
-
-              {estimatesRefreshError && (
-                <div className="mt-6 p-4 bg-red-900/30 border border-red-700 rounded-md text-red-400 max-w-md mx-auto">
-                  <p className="font-semibold">Ошибка обновления оценок:</p>
-                  <p>{estimatesRefreshError}</p> 
-                </div>
-              )}
-              {estimatesRefreshSuccess && !estimatesRefreshError && (
-                <div className="mt-6 p-4 bg-green-900/30 border border-green-700 rounded-md text-green-400 max-w-md mx-auto">
-                  <p>{estimatesRefreshSuccess}</p>
-                </div>
-              )}
-            </div>
           )}
+           {!selectedSemesterId && semesters.length > 0 && !semestersLoading && !currentSelectedSemesterData?.subjectsLoading && (
+             <div className="p-4 bg-slate-800 rounded-lg shadow-lg h-full flex items-center justify-center">
+                <p className="text-center text-slate-400 text-lg">Выберите семестр для просмотра предметов и плана.</p>
+             </div>
+           )}
         </div>
-      )}
-       {!selectedSemesterId && semesters.length > 0 && !semestersLoading && (
-         <p className="text-center text-slate-400 text-lg">Выберите семестр для просмотра предметов.</p>
-       )}
+
+        {/* Правая колонка: План семестра */}
+        <div className="lg:w-1/2 flex flex-col">
+           {/* Передаем selectedSemesterId и token в StudyPlanComponent */}
+          <StudyPlanComponent 
+            semesterId={selectedSemesterId} 
+            formattedSemesterName={currentSelectedSemesterData ? formatSemesterName(currentSelectedSemesterData.name) : null}
+          />
+        </div>
+      </div>
     </div>
   );
 }
+
+export { CoursesPageComponent };
 
 export default function CoursesPage() {
   return (
