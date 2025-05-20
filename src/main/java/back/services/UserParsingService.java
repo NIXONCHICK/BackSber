@@ -33,6 +33,7 @@ public class UserParsingService {
   private final StudentTaskAssignmentRepository studentTaskAssignmentRepository;
   private final TaskGradingRepository taskGradingRepository;
   private final PageParsingService pageParsingService;
+  private final OpenRouterService openRouterService;
 
 
 
@@ -103,7 +104,106 @@ public class UserParsingService {
       parsedSubjectsMap.put(href, parsedSubject);
     }
 
-    for (ParsedSubject parsedSubject : parsedSubjectsMap.values()) {
+    // Фильтрация по последнему семестру
+    if (parsedSubjectsMap.isEmpty()) {
+      System.out.println("Не найдено ни одного курса для пользователя " + personId);
+      // Можно вернуть true, если это не считается ошибкой, или false если курсы обязательны
+      // В данном контексте, если нет курсов, то и парсить/анализировать нечего.
+      // Завершаем успешно, так как технически парсинг прошел (просто ничего не нашел).
+      // Однако, финальное сохранение пустого набора данных может быть нежелательным.
+      // Пока оставим так, но это место для возможного улучшения логики.
+      // Если нужно вернуть false, чтобы сигнализировать об отсутствии данных:
+      // personRepository.save(person); // Сохраняем обновленные ФИО и группу, если они парсились до этого
+      // System.out.println("Данные профиля (ФИО, группа) сохранены, но курсы не найдены.");
+      // return true; // или false в зависимости от требований
+      // Решение: если нет курсов, то и дальнейшая обработка не нужна. Выходим.
+      // Профиль (ФИО, группа) все равно будет спарсен и сохранен ниже, если дойдет дотуда.
+      // Но если выходим здесь, то он не будет сохранен. Это нужно учесть.
+      // Давайте сначала спарсим профиль, а потом уже разберемся с курсами.
+    }
+
+    // Сначала парсим профиль, чтобы ФИО и группа были обновлены в любом случае
+    String profileUrl = "https://lms.sfedu.ru/user/profile.php";
+    String extractedGroupName = null;
+    try {
+      Document profileDoc = pageParsingService.parsePage(profileUrl, moodleSession);
+      System.out.println("Страница профиля успешно загружена.");
+
+      Element h1 = profileDoc.selectFirst("h1.h2");
+      if (h1 != null) {
+        String fullName = h1.text().trim();
+        String[] nameParts = fullName.split("\\s+");
+        if (nameParts.length >= 2) {
+          person.setSurname(nameParts[0]);
+          person.setName(nameParts[1]);
+          if (nameParts.length >= 3) {
+            person.setPatronymic(nameParts[2]);
+          }
+        }
+      }
+
+      Element groupElement = profileDoc.selectFirst("dl:has(dt:containsOwn(Группа)) dd");
+      if (groupElement != null) {
+        extractedGroupName = groupElement.text().trim();
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+      // Не прерываем выполнение, если профиль не спарсился, но логируем
+      System.err.println("Ошибка при парсинге страницы профиля: " + e.getMessage());
+    }
+    // Сохраним пользователя с обновленным ФИО/группой уже здесь, чтобы они не потерялись, если курсов нет
+    // Однако, это приведет к лишнему save, если курсы есть. 
+    // Оптимальнее сохранить person один раз в конце. 
+    // Если курсов нет, то person все равно сохранится в конце.
+
+    if (parsedSubjectsMap.isEmpty()) {
+        System.out.println("Не найдено ни одного курса для пользователя " + personId + ". Обновлен только профиль.");
+        // Сохраняем изменения в профиле (ФИО, группа) и выходим
+        if (extractedGroupName != null && !extractedGroupName.isBlank()) {
+            StudentGroup group = studentGroupRepository.findByName(extractedGroupName).orElse(null);
+            if (group == null) {
+                group = new StudentGroup();
+                group.setName(extractedGroupName);
+                group = studentGroupRepository.save(group);
+            }
+            person.setGroup(group);
+        }
+        personRepository.save(person);
+        System.out.println("Данные профиля сохранены. Курсы отсутствуют.");
+        return true; // Завершаем, так как нет курсов для дальнейшей обработки
+    }
+
+    LocalDate latestSemesterDate = null;
+    for (ParsedSubject ps : parsedSubjectsMap.values()) {
+        if (ps.semesterDate != null) {
+            if (latestSemesterDate == null || ps.semesterDate.isAfter(latestSemesterDate)) {
+                latestSemesterDate = ps.semesterDate;
+            }
+        }
+    }
+
+    Map<String, ParsedSubject> latestSemesterSubjectsMap = new HashMap<>();
+    if (latestSemesterDate != null) {
+        for (Map.Entry<String, ParsedSubject> entry : parsedSubjectsMap.entrySet()) {
+            if (entry.getValue().semesterDate != null && entry.getValue().semesterDate.equals(latestSemesterDate)) {
+                latestSemesterSubjectsMap.put(entry.getKey(), entry.getValue());
+            }
+        }
+        System.out.println("Будут обработаны только курсы последнего семестра: " + latestSemesterDate);
+    } else {
+        // Если по какой-то причине не удалось определить дату семестра (например, у всех курсов она null)
+        // то обрабатываем все, что есть (старое поведение), или не обрабатываем ничего (если это ошибка)
+        // В данном случае, если нет дат, то это странно. Логируем и обрабатываем все.
+        System.err.println("Не удалось определить дату последнего семестра. Будут обработаны все найденные курсы.");
+        latestSemesterSubjectsMap.putAll(parsedSubjectsMap); // Обработать все, если даты не определены
+    }
+    
+    // Заменяем parsedSubjectsMap на отфильтрованную карту
+    // parsedSubjectsMap = latestSemesterSubjectsMap; // Это изменит исходную карту, что может быть нежелательно для других частей метода ниже
+                                                 // Лучше использовать latestSemesterSubjectsMap в последующих циклах
+
+    // Используем latestSemesterSubjectsMap вместо parsedSubjectsMap в последующих циклах
+    for (ParsedSubject parsedSubject : latestSemesterSubjectsMap.values()) { // Изменено
       try {
         Document subjectDoc = pageParsingService.parsePage(parsedSubject.assignmentsUrl, moodleSession);
         System.out.println("Страница предмета \"" + parsedSubject.name + "\" успешно загружена.");
@@ -131,7 +231,7 @@ public class UserParsingService {
     }
 
 
-    for (ParsedSubject parsedSubject : parsedSubjectsMap.values()) {
+    for (ParsedSubject parsedSubject : latestSemesterSubjectsMap.values()) { // Изменено
       for (ParsedTask parsedTask : parsedSubject.tasks) {
         try {
           Document doc = pageParsingService.parsePage(parsedTask.assignmentsUrl, moodleSession);
@@ -192,41 +292,36 @@ public class UserParsingService {
 
           parsedTask.submissionForPerson = submission;
 
+          // Вызов анализа нейросетью
+          try {
+            OpenRouterService.OpenRouterResponse estimateResponse = openRouterService.analyzeParsedTaskAndGetEstimate(
+                parsedTask,
+                parsedSubject.name, // Имя предмета для контекста
+                moodleSession,
+                person
+            );
+            if (estimateResponse != null) {
+                parsedTask.estimatedMinutes = estimateResponse.getEstimatedMinutes();
+                parsedTask.timeEstimateExplanation = estimateResponse.getExplanation();
+                parsedTask.timeEstimateCreatedAt = new Date();
+            }
+          } catch (Exception e) {
+              System.err.println("Ошибка при получении оценки времени для задания \\\"" + parsedTask.name + "\\\": " + e.getMessage());
+              // Оставляем поля оценки null или устанавливаем значения по умолчанию, если необходимо
+              parsedTask.estimatedMinutes = null;
+              parsedTask.timeEstimateExplanation = "Не удалось получить оценку времени: " + e.getMessage();
+              parsedTask.timeEstimateCreatedAt = new Date(); // или null, в зависимости от логики
+          }
+
         } catch (Exception e) {
           e.printStackTrace();
+          // Можно добавить логирование ошибки парсинга конкретного задания
+           System.err.println("Ошибка при парсинге деталей задания \\\"" + parsedTask.name + "\\\": " + e.getMessage());
         }
       }
     }
 
-    String profileUrl = "https://lms.sfedu.ru/user/profile.php";
-    String extractedGroupName = null;
-    try {
-      Document profileDoc = pageParsingService.parsePage(profileUrl, moodleSession);
-      System.out.println("Страница профиля успешно загружена.");
-
-      Element h1 = profileDoc.selectFirst("h1.h2");
-      if (h1 != null) {
-        String fullName = h1.text().trim();
-        String[] nameParts = fullName.split("\\s+");
-        if (nameParts.length >= 2) {
-          person.setSurname(nameParts[0]);
-          person.setName(nameParts[1]);
-          if (nameParts.length >= 3) {
-            person.setPatronymic(nameParts[2]);
-          }
-        }
-      }
-
-      Element groupElement = profileDoc.selectFirst("dl:has(dt:containsOwn(Группа)) dd");
-      if (groupElement != null) {
-        extractedGroupName = groupElement.text().trim();
-      }
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-
-
-    Set<String> subjectUrls = parsedSubjectsMap.keySet();
+    Set<String> subjectUrls = parsedSubjectsMap.keySet(); // Изменено: используем все предметы
     List<Subject> existingSubjects = subjectRepository.findAllByAssignmentsUrlIn(subjectUrls);
     Map<String, Subject> urlToSubjectMap = new HashMap<>();
     for (Subject subj : existingSubjects) {
@@ -242,7 +337,7 @@ public class UserParsingService {
     List<Subject> subjectsToSave = new ArrayList<>();
     List<Enrollment> enrollmentsToSave = new ArrayList<>();
 
-    for (ParsedSubject parsedSubject : parsedSubjectsMap.values()) {
+    for (ParsedSubject parsedSubject : parsedSubjectsMap.values()) { // Изменено: используем все предметы
       Subject subject = urlToSubjectMap.get(parsedSubject.assignmentsUrl);
       if (subject == null) {
         subject = new Subject();
@@ -275,7 +370,7 @@ public class UserParsingService {
     enrollmentRepository.saveAll(enrollmentsToSave);
 
     Set<String> taskUrls = new HashSet<>();
-    for (ParsedSubject ps : parsedSubjectsMap.values()) {
+    for (ParsedSubject ps : parsedSubjectsMap.values()) { // Изменено
       for (ParsedTask pt : ps.tasks) {
         taskUrls.add(pt.assignmentsUrl);
       }
@@ -289,9 +384,11 @@ public class UserParsingService {
     List<Task> tasksToSave = new ArrayList<>();
     List<StudentTaskAssignment> assignmentsToSave = new ArrayList<>();
 
-    for (ParsedSubject ps : parsedSubjectsMap.values()) {
+    for (ParsedSubject ps : parsedSubjectsMap.values()) { // Изменено
       Subject realSubject = urlToSubjectMap.get(ps.assignmentsUrl);
       if (realSubject == null) {
+        // Это не должно происходить, если предметы были сохранены правильно
+        System.err.println("Критическая ошибка: Предмет с URL " + ps.assignmentsUrl + " не найден после сохранения.");
         continue;
       }
 
@@ -300,13 +397,17 @@ public class UserParsingService {
         if (task == null) {
           task = new Task();
           task.setAssignmentsUrl(pt.assignmentsUrl);
-          urlToTaskMap.put(pt.assignmentsUrl, task);
+          urlToTaskMap.put(pt.assignmentsUrl, task); // Добавляем в карту для последующего использования при сохранении StudentTaskAssignment
         }
         task.setName(pt.name);
         task.setSubject(realSubject);
         task.setDeadline(pt.deadline);
         task.setDescription(pt.description);
         task.setSource(TaskSource.PARSED);
+        // Перенос данных оценки времени
+        task.setEstimatedMinutes(pt.estimatedMinutes);
+        task.setTimeEstimateExplanation(pt.timeEstimateExplanation);
+        task.setTimeEstimateCreatedAt(pt.timeEstimateCreatedAt);
 
         if (task.getAttachments() == null) {
           task.setAttachments(new ArrayList<>());
@@ -329,7 +430,7 @@ public class UserParsingService {
     taskRepository.saveAll(tasksToSave);
     taskRepository.flush();
     
-    for (ParsedSubject ps : parsedSubjectsMap.values()) {
+    for (ParsedSubject ps : parsedSubjectsMap.values()) { // Изменено
       for (ParsedTask pt : ps.tasks) {
         Task task = urlToTaskMap.get(pt.assignmentsUrl);
         if (task == null || task.getId() == null) {
@@ -355,7 +456,7 @@ public class UserParsingService {
     
     List<TaskGrading> gradingsToSave = new ArrayList<>();
     
-    for (ParsedSubject ps : parsedSubjectsMap.values()) {
+    for (ParsedSubject ps : parsedSubjectsMap.values()) { // Изменено
       for (ParsedTask pt : ps.tasks) {
         Task task = urlToTaskMap.get(pt.assignmentsUrl);
         if (task == null || task.getId() == null) {
@@ -479,7 +580,7 @@ public class UserParsingService {
   }
 
 
-  private static class ParsedSubject {
+  public static class ParsedSubject {
     String assignmentsUrl;
     String name;
     LocalDate semesterDate;
@@ -487,24 +588,27 @@ public class UserParsingService {
   }
 
 
-  private static class ParsedTask {
+  public static class ParsedTask {
     String assignmentsUrl;
     String name;
     Timestamp deadline;
     String description;
     List<ParsedAttachment> attachments = new ArrayList<>();
     ParsedSubmission submissionForPerson;
+    Integer estimatedMinutes;
+    String timeEstimateExplanation;
+    Date timeEstimateCreatedAt;
   }
 
 
-  private static class ParsedAttachment {
+  public static class ParsedAttachment {
     String fileUrl;
     String fileName;
     String fileExtension;
   }
 
 
-  private static class ParsedSubmission {
+  public static class ParsedSubmission {
     Long personId;
     String submissionStatus;
     String gradingStatus;

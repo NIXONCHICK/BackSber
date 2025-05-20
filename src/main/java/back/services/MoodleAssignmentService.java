@@ -145,7 +145,7 @@ public class MoodleAssignmentService {
     }
 
 
-    private String getValidMoodleSession(Person person) {
+    public String getValidMoodleSession(Person person) {
         log.info("Проверка MoodleSession для пользователя {}", person.getEmail());
 
         if (person.getMoodleSession() != null) {
@@ -197,7 +197,7 @@ public class MoodleAssignmentService {
     }
 
 
-    private File downloadFile(String fileUrl, String moodleSession, Person person) throws IOException {
+    public File downloadFile(String fileUrl, String moodleSession, Person person) throws IOException {
         IOException lastException = null;
         try {
             log.info("Первая попытка скачать файл: {} для пользователя {}", fileUrl, person.getEmail());

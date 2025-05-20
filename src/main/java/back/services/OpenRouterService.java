@@ -10,6 +10,9 @@ import back.repositories.TaskGradingRepository;
 import back.entities.StudentTaskAssignment;
 import back.entities.TaskGrading;
 import back.dto.TaskForStudyPlanDto;
+import back.services.UserParsingService.ParsedTask;
+import back.services.UserParsingService.ParsedAttachment;
+import back.entities.Person;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
@@ -37,6 +40,7 @@ public class OpenRouterService {
     private final MoodleAssignmentService moodleAssignmentService;
     private final StudentTaskAssignmentRepository studentTaskAssignmentRepository;
     private final TaskGradingRepository taskGradingRepository;
+    private final TextProcessingService textProcessingService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     // OpenRouter Configuration
@@ -399,7 +403,7 @@ public class OpenRouterService {
     }
 
     @Getter
-    private static class OpenRouterResponse {
+    public static class OpenRouterResponse {
         private final int estimatedMinutes;
         private final String explanation;
 
@@ -407,7 +411,6 @@ public class OpenRouterService {
             this.estimatedMinutes = estimatedMinutes;
             this.explanation = explanation;
         }
-
     }
 
 
@@ -644,5 +647,72 @@ public class OpenRouterService {
                     .build());
         }
         return taskDtos;
+    }
+
+    public OpenRouterResponse analyzeParsedTaskAndGetEstimate(ParsedTask parsedTask, String subjectName, String initialMoodleSession, Person person) {
+        log.info("Начинаем анализ предварительно спарсенного задания '{}' для пользователя {}", parsedTask.name, person.getEmail());
+        StringBuilder allText = new StringBuilder();
+
+        if (subjectName != null && !subjectName.isEmpty()) {
+            allText.append("===== ПРЕДМЕТ =====\n\n");
+            allText.append(subjectName).append("\n\n");
+        }
+
+        if (parsedTask.description != null && !parsedTask.description.isEmpty()) {
+            allText.append("===== ОПИСАНИЕ ЗАДАНИЯ =====\n\n");
+            allText.append(parsedTask.description).append("\n\n");
+        }
+
+        if (parsedTask.attachments != null && !parsedTask.attachments.isEmpty()) {
+            log.info("Найдено {} прикрепленных файлов в предварительно спарсенном задании", parsedTask.attachments.size());
+            String currentMoodleSession = initialMoodleSession;
+
+            for (ParsedAttachment attachment : parsedTask.attachments) {
+                log.info("Обрабатываем файл из ParsedTask: {}, URL: {}", attachment.fileName, attachment.fileUrl);
+                try {
+                    // Получаем/проверяем сессию перед каждым скачиванием, т.к. она могла обновиться
+                    String validMoodleSession = moodleAssignmentService.getValidMoodleSession(person);
+                    if (validMoodleSession == null) {
+                         log.warn("Не удалось получить/обновить Moodle сессию для пользователя {}. Пропускаем файл {}.", person.getEmail(), attachment.fileName);
+                         allText.append("===== ФАЙЛ: ").append(attachment.fileName).append(" =====\n\n");
+                         allText.append("Не удалось скачать файл: проблема с Moodle сессией.\n\n");
+                         continue;
+                    }
+                    currentMoodleSession = validMoodleSession; // Обновляем текущую сессию на случай, если она изменилась
+
+                    java.io.File tempFile = moodleAssignmentService.downloadFile(attachment.fileUrl, currentMoodleSession, person);
+                    if (tempFile == null) {
+                        log.warn("Не удалось скачать файл {} для задания {}. Пропускаем.", attachment.fileName, parsedTask.name);
+                        allText.append("===== ФАЙЛ: ").append(attachment.fileName).append(" =====\n\n");
+                        allText.append("Не удалось скачать файл: возможно, проблема с доступом или URL.\n\n");
+                        continue;
+                    }
+
+                    String fileContent = textProcessingService.extractTextFromFile(tempFile);
+                    log.info("Извлечен текст из {}, размер текста: {} символов", attachment.fileName, fileContent.length());
+
+                    allText.append("===== ФАЙЛ: ").append(attachment.fileName).append(" =====\n\n");
+                    allText.append(fileContent).append("\n\n");
+
+                    if (!tempFile.delete()) {
+                        log.warn("Не удалось удалить временный файл: {}", tempFile.getAbsolutePath());
+                    }
+                } catch (Exception e) {
+                    log.error("Ошибка при обработке файла {} из ParsedTask: {}", attachment.fileName, e.getMessage(), e);
+                    allText.append("===== ФАЙЛ: ").append(attachment.fileName).append(" =====\n\n");
+                    allText.append("Ошибка при обработке файла: ").append(e.getMessage()).append("\n\n");
+                }
+            }
+        } else {
+            log.info("В предварительно спарсенном задании нет прикрепленных файлов");
+        }
+
+        if (allText.length() == 0) {
+            log.warn("Контекст для задания '{}' оказался пустым. Оценка времени не будет запрошена.", parsedTask.name);
+            return new OpenRouterResponse(0, "Описание и файлы задания не содержат текста для анализа.");
+        }
+        
+        log.info("Сформирован контекст для анализа ({} символов) для задания: {}", allText.length(), parsedTask.name);
+        return askGeminiForTimeEstimate(allText.toString(), parsedTask.name);
     }
 } 
