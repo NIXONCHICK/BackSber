@@ -38,10 +38,10 @@ export default function Header() {
             <>
               {isAuthenticated && user ? (
                 <>
-                  {/* <span className="text-sm text-slate-300">Привет, {user.email}!</span> */}
-                  <Link href="/profile" className="text-sm hover:text-sky-400 transition-colors">
+                  <span className="text-sm text-slate-300 mr-3">{user.email}</span>
+                  {/* <Link href="/profile" className="text-sm hover:text-sky-400 transition-colors">
                     Профиль
-                  </Link>
+                  </Link> */}
                   <button
                     onClick={handleLogout}
                     className="bg-sky-600 hover:bg-sky-700 text-white py-2 px-4 rounded-md transition-colors text-sm"
