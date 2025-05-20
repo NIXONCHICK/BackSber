@@ -8,6 +8,7 @@ import back.services.OpenRouterService;
 import back.services.StudyPlanService;
 import back.dto.StudyPlanResponse;
 import back.dto.TaskForStudyPlanDto;
+import back.services.UserParsingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -32,6 +33,7 @@ public class TaskTimeEstimateController {
     private final OpenRouterService openRouterService;
     private final EmailService emailService;
     private final StudyPlanService studyPlanService;
+    private final UserParsingService userParsingService;
     
     @GetMapping("/{taskId}")
     @PreAuthorize("isAuthenticated()")
@@ -221,36 +223,44 @@ public class TaskTimeEstimateController {
     public ResponseEntity<List<TaskTimeEstimateResponse>> refreshTasksBySemester(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date date) {
         try {
-            log.info("Получен запрос на ПРИНУДИТЕЛЬНОЕ обновление заданий по семестру для даты: {}", date);
-            
+            log.info("Получен запрос на ПРИНУДИТЕЛЬНОЕ обновление и анализ заданий по семестру для даты: {}", date);
+
             Long userId;
             Person person;
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth != null && auth.getPrincipal() instanceof Person) {
                 person = (Person) auth.getPrincipal();
                 userId = person.getId();
-                log.info("ID пользователя из Person для принудительного обновления по семестру: {}", userId);
+                log.info("ID пользователя из Person для обновления и анализа по семестру: {}", userId);
             } else {
-                log.warn("Не удалось получить ID пользователя из Person для принудительного обновления по семестру");
+                log.warn("Не удалось получить ID пользователя из Person для обновления и анализа по семестру");
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
             }
+
+            // Конвертируем java.util.Date в java.time.LocalDate
+            LocalDate localDate = date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
             
-            List<TaskTimeEstimateResponse> responses = openRouterService.refreshTaskEstimatesBySemester(date, userId);
-            
+            // Вызываем новый метод из UserParsingService
+            List<TaskTimeEstimateResponse> responses = userParsingService.refreshAndAnalyzeSemesterTasks(userId, localDate);
+
             // Отправляем электронное письмо с результатом
+            // TODO: Возможно, стоит пересмотреть логику отправки письма, 
+            // так как responses теперь содержит не только свежепроанализированные, но и существующие задачи.
+            // Для простоты пока оставим как есть.
             if (person.getEmail() != null && !responses.isEmpty()) {
-                log.info("Отправка письма с результатами принудительного обновления заданий по семестру на почту: {}", person.getEmail());
+                log.info("Отправка письма с результатами обновления и анализа заданий по семестру на почту: {}", person.getEmail());
                 emailService.sendSemesterTasksAnalysisNotification(
                     person.getEmail(),
-                    responses,
-                    date
+                    responses, // Этот метод ожидает список TaskTimeEstimateResponse, что совпадает
+                    date     // Дата для письма остается той же
                 );
             }
-            
+
             return ResponseEntity.ok(responses);
         } catch (Exception e) {
-            log.error("Ошибка при принудительном обновлении заданий по семестру: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            log.error("Ошибка при обновлении и анализе заданий по семестру: {}", e.getMessage(), e);
+            // Возвращаем более информативный статус ошибки, если это возможно
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); 
         }
     }
 

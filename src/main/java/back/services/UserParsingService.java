@@ -19,6 +19,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.time.ZoneId;
+import back.dto.TaskTimeEstimateResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -615,5 +617,396 @@ public class UserParsingService {
     Float mark;
     Float maxMark;
     Timestamp submissionDate;
+  }
+
+  // Новый метод для обновления и анализа задач конкретного семестра
+  public List<TaskTimeEstimateResponse> refreshAndAnalyzeSemesterTasks(long personId, LocalDate semesterKeyDate) {
+    System.out.println("Запуск refreshAndAnalyzeSemesterTasks для пользователя " + personId + " и семестра с ключевой датой: " + semesterKeyDate);
+    List<TaskTimeEstimateResponse> finalResponses = new ArrayList<>();
+
+    Optional<Person> personOptional = personRepository.findById(personId);
+    if (personOptional.isEmpty()) {
+      System.err.println("refreshAndAnalyzeSemesterTasks: Person с id " + personId + " не найден.");
+      // Возвращаем пустой список или выбрасываем исключение
+      return finalResponses; 
+    }
+    Person person = personOptional.get();
+
+    String moodleSession = person.getMoodleSession();
+    if (moodleSession == null || moodleSession.trim().isEmpty()) {
+      System.err.println("refreshAndAnalyzeSemesterTasks: Отсутствует Moodle сессия для personId: " + personId + ". Обновление невозможно.");
+      // Можно попытаться обновить сессию здесь, если есть такая логика, или вернуть ошибку
+      return finalResponses; // или бросить исключение
+    }
+
+    // 1. Парсинг Moodle для целевого семестра
+    String myUrl = "https://lms.sfedu.ru/my/";
+    Document myDoc;
+    try {
+      myDoc = pageParsingService.parsePage(myUrl, moodleSession);
+      System.out.println("Страница 'My' успешно загружена для определения курсов семестра.");
+    } catch (Exception e) {
+      e.printStackTrace();
+      System.err.println("refreshAndAnalyzeSemesterTasks: Ошибка загрузки страницы 'My': " + e.getMessage());
+      return finalResponses; // или бросить исключение
+    }
+
+    Map<String, ParsedSubject> targetSemesterParsedSubjectsMap = new HashMap<>();
+    Elements courseLinks = myDoc.select("a[title][href]:has(span.coc-metainfo)");
+
+    for (Element link : courseLinks) {
+      String href = link.attr("href").trim();
+      String title = link.attr("title").trim();
+      Element span = link.selectFirst("span.coc-metainfo");
+      String semesterText = (span != null) ? span.text().trim() : null;
+      LocalDate parsedSemesterDate = convertSemesterTextToDate(semesterText);
+
+      if (parsedSemesterDate == null || href.isEmpty()) {
+        continue;
+      }
+      
+      // Сравниваем только год и месяц для определения принадлежности к семестру
+      // или используем semesterKeyDate как точное совпадение, если convertSemesterTextToDate всегда возвращает начало семестра
+      // Для простоты будем считать, что convertSemesterTextToDate возвращает каноническую дату начала семестра (как semesterKeyDate)
+      if (parsedSemesterDate.equals(semesterKeyDate)) {
+        ParsedSubject parsedSubject = new ParsedSubject();
+        parsedSubject.assignmentsUrl = href;
+        parsedSubject.name = title;
+        parsedSubject.semesterDate = parsedSemesterDate; // это будет semesterKeyDate
+        targetSemesterParsedSubjectsMap.put(href, parsedSubject);
+      }
+    }
+    
+    if (targetSemesterParsedSubjectsMap.isEmpty()) {
+        System.out.println("Не найдено курсов на Moodle для семестра: " + semesterKeyDate);
+        // Если курсов нет, то и задач нет. Можно вернуть пустой список.
+        return finalResponses;
+    }
+    System.out.println("Найдено " + targetSemesterParsedSubjectsMap.size() + " курсов для семестра " + semesterKeyDate + " на Moodle.");
+
+    // 2. Детальный парсинг задач для курсов целевого семестра
+    List<ParsedTask> allParsedTasksFromSemester = new ArrayList<>();
+    Map<ParsedTask, ParsedSubject> taskToSubjectMap = new HashMap<>(); // Для доступа к имени предмета при анализе
+
+    for (ParsedSubject parsedSubject : targetSemesterParsedSubjectsMap.values()) {
+      try {
+        Document subjectDoc = pageParsingService.parsePage(parsedSubject.assignmentsUrl, moodleSession);
+        System.out.println("Страница предмета \"" + parsedSubject.name + "\" успешно загружена (обновление семестра).");
+
+        Elements assignmentLinks = subjectDoc.select("a.aalink.stretched-link");
+        for (Element assignmentLink : assignmentLinks) {
+          String taskHref = assignmentLink.attr("href").trim();
+          if (!taskHref.startsWith("https://lms.sfedu.ru/mod/assign/view.php")) {
+            continue;
+          }
+          String taskName = "";
+          Element nameElement = assignmentLink.selectFirst("span.instancename");
+          if (nameElement != null) {
+            taskName = nameElement.text().trim();
+          }
+
+          ParsedTask parsedTask = new ParsedTask();
+          parsedTask.assignmentsUrl = taskHref;
+          parsedTask.name = taskName;
+          
+          // Детальный парсинг задания
+          try {
+            Document taskDoc = pageParsingService.parsePage(parsedTask.assignmentsUrl, moodleSession);
+            System.out.println("  Детальный парсинг задания \"" + parsedTask.name + "\"...");
+
+            Element deadlineDiv = taskDoc.select("div.description-inner > div:has(strong:containsOwn(Срок сдачи))").first();
+            if (deadlineDiv != null) {
+              LocalDateTime dt = parseDateText(deadlineDiv.text());
+              if (dt != null) parsedTask.deadline = Timestamp.valueOf(dt);
+            }
+
+            Element descriptionBlock = taskDoc.selectFirst("div.box.py-3.generalbox.boxaligncenter");
+            if (descriptionBlock != null) {
+              Element noOverflowDiv = descriptionBlock.selectFirst("div.no-overflow");
+              if (noOverflowDiv != null) parsedTask.description = noOverflowDiv.text().trim();
+              
+              Element filesTree = descriptionBlock.selectFirst("div[id^=assign_files_tree]");
+              if (filesTree != null) {
+                Elements attachmentElements = filesTree.select("a[target=_blank]");
+                for (Element a : attachmentElements) {
+                  ParsedAttachment attach = new ParsedAttachment();
+                  attach.fileUrl = a.attr("href").trim();
+                  attach.fileName = a.text().trim();
+                  int lastDotIndex = attach.fileName.lastIndexOf('.');
+                  if (lastDotIndex != -1 && lastDotIndex < attach.fileName.length() - 1) {
+                    attach.fileExtension = attach.fileName.substring(lastDotIndex + 1);
+                  }
+                  parsedTask.attachments.add(attach);
+                }
+              }
+            }
+            // Парсинг информации о сдаче (submission)
+            String submissionStatus = textFromAdjacentTd(taskDoc, "Состояние ответа на задание");
+            String gradingStatus = textFromAdjacentTd(taskDoc, "Состояние оценивания");
+            String gradeText = textFromAdjacentTd(taskDoc, "Оценка");
+            String submissionDateText = textFromAdjacentTd(taskDoc, "Последнее изменение");
+            LocalDateTime submissionDate = parseDateText(submissionDateText);
+            Float[] marks = parseGrade(gradeText);
+
+            ParsedSubmission submission = new ParsedSubmission();
+            submission.personId = personId;
+            submission.submissionStatus = submissionStatus;
+            submission.gradingStatus = gradingStatus;
+            submission.mark = marks[0];
+            submission.maxMark = marks[1];
+            submission.submissionDate = (submissionDate != null) ? Timestamp.valueOf(submissionDate) : null;
+            parsedTask.submissionForPerson = submission;
+
+            allParsedTasksFromSemester.add(parsedTask);
+            taskToSubjectMap.put(parsedTask, parsedSubject);
+
+          } catch (Exception taskDetailException) {
+            taskDetailException.printStackTrace();
+            System.err.println("refreshAndAnalyzeSemesterTasks: Ошибка детального парсинга задания \"" + parsedTask.name + "\" (URL: " + parsedTask.assignmentsUrl + "): " + taskDetailException.getMessage());
+          }
+        }
+      } catch (Exception subjectPageException) {
+        subjectPageException.printStackTrace();
+        System.err.println("refreshAndAnalyzeSemesterTasks: Ошибка парсинга страницы предмета \"" + parsedSubject.name + "\": " + subjectPageException.getMessage());
+      }
+    }
+    System.out.println("Спарсено " + allParsedTasksFromSemester.size() + " задач с их деталями из Moodle для семестра " + semesterKeyDate);
+
+    // 3. Получение существующих задач из БД для этого семестра
+    // Предполагаем, что semesterKeyDate - это LocalDate, которое нужно конвертировать в java.sql.Date
+    java.sql.Date semesterSqlDate = java.sql.Date.valueOf(semesterKeyDate);
+    List<Task> dbTasksForSemesterList = taskRepository.findTasksBySourceAndPersonIdAndSemesterDate(TaskSource.PARSED, personId, semesterSqlDate);
+    
+    Map<String, Task> dbTasksMap = new HashMap<>();
+    for (Task dbTask : dbTasksForSemesterList) {
+        if (dbTask.getAssignmentsUrl() != null) {
+            dbTasksMap.put(dbTask.getAssignmentsUrl(), dbTask);
+        }
+    }
+    System.out.println("Найдено " + dbTasksMap.size() + " задач в БД для пользователя " + personId + " и семестра " + semesterKeyDate);
+
+    // 4. Обработка и анализ задач
+    // Сначала обработаем и сохраним предметы и зачисления для целевого семестра, если они новые
+    List<Subject> subjectsToSaveOrUpdate = new ArrayList<>();
+    Map<String, Subject> urlToSubjectEntityMap = new HashMap<>(); // Для связи ParsedSubject с реальной Subject Entity
+    
+    // Получаем существующие предметы из БД по URL адресам спарсенных предметов целевого семестра
+    Set<String> subjectUrlsFromMoodle = targetSemesterParsedSubjectsMap.keySet();
+    List<Subject> existingDbSubjects = subjectRepository.findAllByAssignmentsUrlIn(subjectUrlsFromMoodle);
+    for(Subject s : existingDbSubjects) urlToSubjectEntityMap.put(s.getAssignmentsUrl(), s);
+
+    for (ParsedSubject parsedSubject : targetSemesterParsedSubjectsMap.values()) {
+        Subject subjectEntity = urlToSubjectEntityMap.get(parsedSubject.assignmentsUrl);
+        if (subjectEntity == null) { // Новый предмет для этого URL
+            subjectEntity = new Subject();
+            subjectEntity.setAssignmentsUrl(parsedSubject.assignmentsUrl);
+        }
+        subjectEntity.setName(parsedSubject.name);
+        subjectEntity.setSemesterDate(java.sql.Date.valueOf(parsedSubject.semesterDate)); // semesterDate это semesterKeyDate
+        subjectsToSaveOrUpdate.add(subjectEntity);
+        urlToSubjectEntityMap.put(parsedSubject.assignmentsUrl, subjectEntity); // Обновляем карту, если предмет был новый
+    }
+    if (!subjectsToSaveOrUpdate.isEmpty()) {
+        subjectRepository.saveAll(subjectsToSaveOrUpdate);
+        subjectRepository.flush(); // Для получения ID у новых предметов
+        System.out.println("Сохранено/обновлено " + subjectsToSaveOrUpdate.size() + " предметов для семестра.");
+         // Обновим карту urlToSubjectEntityMap свежесохраненными сущностями (с ID)
+        for(Subject s : subjectsToSaveOrUpdate) urlToSubjectEntityMap.put(s.getAssignmentsUrl(),s);
+    }
+
+    // Обеспечим зачисление (Enrollment) пользователя на эти предметы
+    List<Enrollment> enrollmentsToSave = new ArrayList<>();
+    List<Enrollment> existingEnrollmentsForSemester = enrollmentRepository.findAllByPersonIdAndSubject_SemesterDate(personId, semesterSqlDate); // !!! НУЖЕН ЭТОТ МЕТОД В РЕПОЗИТОРИИ !!!
+    Set<String> existingEnrollmentKeys = new HashSet<>();
+    for (Enrollment e : existingEnrollmentsForSemester) {
+        existingEnrollmentKeys.add(e.getPerson().getId() + "_" + e.getSubject().getId());
+    }
+
+    for (Subject subjectEntity : urlToSubjectEntityMap.values()) { // Используем уже сохраненные/обновленные Subject entities
+        if (subjectEntity.getId() == null) { // Предмет не был сохранен / нет ID - пропускаем
+            System.err.println("refreshAndAnalyzeSemesterTasks: Предмет " + subjectEntity.getName() + " не имеет ID после сохранения, пропускаем создание зачисления.");
+            continue;
+        }
+        String enrollmentKey = person.getId() + "_" + subjectEntity.getId();
+        if (!existingEnrollmentKeys.contains(enrollmentKey)) {
+            Enrollment enrollment = new Enrollment();
+            enrollment.setId(new EnrollmentId(person.getId(), subjectEntity.getId()));
+            enrollment.setPerson(person);
+            enrollment.setSubject(subjectEntity);
+            enrollmentsToSave.add(enrollment);
+        }
+    }
+    if (!enrollmentsToSave.isEmpty()) {
+        enrollmentRepository.saveAll(enrollmentsToSave);
+        System.out.println("Создано " + enrollmentsToSave.size() + " новых зачислений на предметы семестра.");
+    }
+
+    // Теперь основной цикл по спарсенным задачам
+    List<Task> tasksToSaveOrUpdate = new ArrayList<>();
+    List<StudentTaskAssignment> assignmentsToSaveOrUpdate = new ArrayList<>();
+    List<TaskGrading> gradingsToSaveOrUpdate = new ArrayList<>();
+
+    for (ParsedTask parsedTask : allParsedTasksFromSemester) {
+        ParsedSubject parentParsedSubject = taskToSubjectMap.get(parsedTask);
+        Subject subjectEntity = urlToSubjectEntityMap.get(parentParsedSubject.assignmentsUrl);
+        if (subjectEntity == null || subjectEntity.getId() == null) {
+            System.err.println("refreshAndAnalyzeSemesterTasks: Не найден или не сохранен родительский предмет для задачи \"" + parsedTask.name + "\". Пропускаем задачу.");
+            continue;
+        }
+
+        Task taskEntity = dbTasksMap.get(parsedTask.assignmentsUrl);
+        boolean isNewTask = taskEntity == null;
+
+        if (isNewTask) {
+            taskEntity = new Task();
+            taskEntity.setAssignmentsUrl(parsedTask.assignmentsUrl);
+            taskEntity.setSource(TaskSource.PARSED);
+        }
+
+        // Обновляем поля из свежеспарсенных данных
+        taskEntity.setName(parsedTask.name);
+        taskEntity.setDescription(parsedTask.description);
+        taskEntity.setDeadline(parsedTask.deadline);
+        taskEntity.setSubject(subjectEntity); // Связываем с актуальной сущностью предмета
+
+        // Обновление вложений
+        if (taskEntity.getAttachments() == null) taskEntity.setAttachments(new ArrayList<>());
+        taskEntity.getAttachments().clear(); // Удаляем старые, чтобы заменить новыми
+        if (parsedTask.attachments != null) {
+            for (ParsedAttachment pa : parsedTask.attachments) {
+                TaskAttachment attachment = new TaskAttachment();
+                attachment.setTask(taskEntity); // Важно установить связь
+                attachment.setFileUrl(pa.fileUrl);
+                attachment.setFileName(pa.fileName);
+                attachment.setFileExtension(pa.fileExtension);
+                taskEntity.getAttachments().add(attachment);
+            }
+        }
+        
+        // Проверка и вызов анализа
+        if (taskEntity.getEstimatedMinutes() != null && !isNewTask) { // Если оценка есть и задача не новая
+            System.out.println("  Задача \"" + taskEntity.getName() + "\": используется существующая оценка времени из БД.");
+            finalResponses.add(TaskTimeEstimateResponse.builder()
+                .taskId(taskEntity.getId()) // Будет null если задача новая и еще не сохранена, но сюда мы попадаем если !isNewTask
+                .taskName(taskEntity.getName())
+                .estimatedMinutes(taskEntity.getEstimatedMinutes())
+                .explanation(taskEntity.getTimeEstimateExplanation())
+                .createdAt(taskEntity.getTimeEstimateCreatedAt())
+                .fromCache(true).build());
+        } else {
+            System.out.println("  Задача \"" + taskEntity.getName() + "\": требуется анализ нейросетью (новая или без оценки).");
+            try {
+                OpenRouterService.OpenRouterResponse estimateResponse = 
+                    openRouterService.analyzeParsedTaskAndGetEstimate(parsedTask, parentParsedSubject.name, moodleSession, person);
+                if (estimateResponse != null) {
+                    taskEntity.setEstimatedMinutes(estimateResponse.getEstimatedMinutes());
+                    taskEntity.setTimeEstimateExplanation(estimateResponse.getExplanation());
+                    taskEntity.setTimeEstimateCreatedAt(new Date());
+                }
+                 finalResponses.add(TaskTimeEstimateResponse.builder()
+                    .taskId(isNewTask ? null : taskEntity.getId()) // ID будет присвоен после сохранения для новых
+                    .taskName(taskEntity.getName())
+                    .estimatedMinutes(taskEntity.getEstimatedMinutes())
+                    .explanation(taskEntity.getTimeEstimateExplanation())
+                    .createdAt(taskEntity.getTimeEstimateCreatedAt())
+                    .fromCache(false).build());
+            } catch (Exception e) {
+                System.err.println("refreshAndAnalyzeSemesterTasks: Ошибка анализа нейросетью для задачи \"" + parsedTask.name + "\": " + e.getMessage());
+                taskEntity.setTimeEstimateExplanation("Ошибка анализа: " + e.getMessage().substring(0, Math.min(250, e.getMessage().length())));
+                 finalResponses.add(TaskTimeEstimateResponse.builder()
+                    .taskId(isNewTask ? null : taskEntity.getId()) 
+                    .taskName(taskEntity.getName())
+                    .explanation(taskEntity.getTimeEstimateExplanation())
+                    .fromCache(false).build()); // Ошибка, но все равно не из кеша
+            }
+        }
+        tasksToSaveOrUpdate.add(taskEntity);
+    }
+
+    if (!tasksToSaveOrUpdate.isEmpty()) {
+        taskRepository.saveAll(tasksToSaveOrUpdate);
+        taskRepository.flush(); // Для получения ID у новых Task и для корректного taskId в finalResponses
+        System.out.println("Сохранено/обновлено " + tasksToSaveOrUpdate.size() + " задач.");
+        // Обновляем ID в finalResponses для новых задач
+        Map<String, Task> finalTasksMap = new HashMap<>();
+        for(Task t : tasksToSaveOrUpdate) finalTasksMap.put(t.getAssignmentsUrl(),t);
+
+        for(TaskTimeEstimateResponse resp : finalResponses){
+            if(resp.getTaskId() == null){
+                // Ищем задачу по имени (или лучше по URL, если бы он был в resp, но его нет)
+                // Это хрупко. Лучше связать ParsedTask с TaskTimeEstimateResponse напрямую перед сохранением.
+                // Пока оставим так, или сделаем поиск по имени и объяснению (что тоже не идеально)
+                // Найдем задачу в finalTasksMap по имени, предполагая, что имя уникально в рамках ответа
+                for(Task t : finalTasksMap.values()){ //Плохой способ, но для примера
+                    if(t.getName().equals(resp.getTaskName()) && 
+                       ((t.getTimeEstimateExplanation()!=null && t.getTimeEstimateExplanation().equals(resp.getExplanation())) || 
+                        (t.getEstimatedMinutes()!=null && t.getEstimatedMinutes().equals(resp.getEstimatedMinutes())) ) ){
+                        resp.setTaskId(t.getId());
+                        if(resp.getCreatedAt() == null && t.getTimeEstimateCreatedAt() !=null) resp.setCreatedAt(t.getTimeEstimateCreatedAt());
+                        if(resp.getEstimatedMinutes() == null && t.getEstimatedMinutes() !=null) resp.setEstimatedMinutes(t.getEstimatedMinutes());
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    
+    // Обработка StudentTaskAssignment и TaskGrading для всех задач (новых и обновленных)
+    // Используем tasksToSaveOrUpdate, так как они теперь содержат актуальные ID
+    for(Task taskEntity : tasksToSaveOrUpdate) {
+        // Найдем соответствующий ParsedTask для получения submissionForPerson
+        ParsedTask originalParsedTask = null;
+        for(ParsedTask pt : allParsedTasksFromSemester){
+            if(pt.assignmentsUrl.equals(taskEntity.getAssignmentsUrl())){
+                originalParsedTask = pt;
+                break;
+            }
+        }
+        if(originalParsedTask == null || originalParsedTask.submissionForPerson == null){
+            //System.out.println("Нет данных о сдаче для задачи " + taskEntity.getName() + " или не найден исходный ParsedTask");
+            continue; // Нет данных о сдаче
+        }
+
+        ParsedSubmission sub = originalParsedTask.submissionForPerson;
+        StudentTaskAssignmentId assignmentId = new StudentTaskAssignmentId(taskEntity.getId(), person.getId());
+        StudentTaskAssignment assignment = studentTaskAssignmentRepository.findById(assignmentId).orElse(null);
+        boolean isNewAssignment = assignment == null;
+        if (isNewAssignment) {
+            assignment = new StudentTaskAssignment();
+            assignment.setId(assignmentId);
+            assignment.setTask(taskEntity);
+            assignment.setPerson(person);
+        }
+        // Тут можно добавить обновление полей StudentTaskAssignment, если они есть и парсятся
+        assignmentsToSaveOrUpdate.add(assignment);
+
+        // TaskGrading
+        TaskGrading grading = null;
+        if(!isNewAssignment) { // Если назначение не новое, ищем существующую оценку
+             grading = taskGradingRepository.findByAssignment(assignment);
+        }
+        if (grading == null) { // Если оценка не найдена или назначение новое
+            grading = new TaskGrading();
+            grading.setAssignment(assignment); // Связь устанавливается здесь
+        }
+        grading.setSubmissionStatus(sub.submissionStatus);
+        grading.setGradingStatus(sub.gradingStatus);
+        grading.setSubmissionDate(sub.submissionDate);
+        grading.setMark(sub.mark);
+        grading.setMaxMark(sub.maxMark);
+        gradingsToSaveOrUpdate.add(grading);
+    }
+
+    if(!assignmentsToSaveOrUpdate.isEmpty()){
+        studentTaskAssignmentRepository.saveAll(assignmentsToSaveOrUpdate);
+         System.out.println("Сохранено/обновлено " + assignmentsToSaveOrUpdate.size() + " назначений StudentTaskAssignment.");
+    }
+    if(!gradingsToSaveOrUpdate.isEmpty()){
+        taskGradingRepository.saveAll(gradingsToSaveOrUpdate);
+         System.out.println("Сохранено/обновлено " + gradingsToSaveOrUpdate.size() + " оценок TaskGrading.");
+    }
+
+    System.out.println("Завершено refreshAndAnalyzeSemesterTasks для пользователя " + personId + ". Результатов: " + finalResponses.size());
+    return finalResponses;
   }
 }

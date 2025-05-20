@@ -31,6 +31,7 @@ function PageContent() {
                     const result = await response.json();
                     if (result) { 
                         setParsingMessage("Сбор данных успешно завершен!");
+                        router.push('/courses?initialParseCompleted=true');
                     } else {
                         setParsingError("Не удалось собрать данные. Пожалуйста, попробуйте позже или обратитесь в поддержку.");
                         setParsingMessage(null);
@@ -48,7 +49,7 @@ function PageContent() {
                 setParsingMessage(null);
             });
         }
-    }, [token, user]); 
+    }, [token, user, router]); 
 
     if (authLoading) {
         return (

@@ -10,6 +10,7 @@ import java.sql.Date;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface TaskRepository extends JpaRepository<Task, Long> {
   List<Task> findAllByAssignmentsUrlIn(Collection<String> urls);
@@ -74,5 +75,4 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
          "LEFT JOIN FETCH t.subject " +
          "WHERE sta.person.id = :personId")
   List<Task> findTasksByPersonId(@Param("personId") Long personId);
-
 }

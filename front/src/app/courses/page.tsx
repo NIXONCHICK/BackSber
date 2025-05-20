@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext'; // Если понадобится для API-запросов в будущем
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/solid'; // Иконки для аккордеона
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import StudyPlanComponent from '@/components/features/StudyPlanComponent'; // <--- Импорт нового компонента
 
 // Типы данных, соответствующие DTO с бэкенда
@@ -87,6 +87,9 @@ const mockSemestersData: SemesterDto[] = [
 
 function CoursesPageComponent() {
   const { token } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [semesters, setSemesters] = useState<SemesterDto[]>([]);
   const [selectedSemesterId, setSelectedSemesterId] = useState<string | null>(null);
   const [expandedSubjectId, setExpandedSubjectId] = useState<number | null>(null);
@@ -98,8 +101,6 @@ function CoursesPageComponent() {
   const [estimatesRefreshing, setEstimatesRefreshing] = useState(false);
   const [estimatesRefreshError, setEstimatesRefreshError] = useState<string | null>(null);
   const [estimatesRefreshSuccess, setEstimatesRefreshSuccess] = useState<string | null>(null);
-
-  const router = useRouter();
 
   // Функция для получения дат начала и конца семестра
   const getSemesterDates = (semesterId: string | null): { startDate?: string; endDate?: string } => {
@@ -162,9 +163,6 @@ function CoursesPageComponent() {
     const fetchSemestersData = async () => {
       console.log("CoursesPageComponent: fetchSemestersData called.");
       
-      // Устанавливаем semestersLoading только если это действительно нужно (например, еще не загружено)
-      // или если это первый вызов (semesters.length === 0) и еще не loading.
-      // Эта проверка помогает избежать ненужного мерцания лоадера при повторных вызовах в StrictMode, если данные уже есть.
       if (semesters.length === 0 && !semestersLoading) {
            setSemestersLoading(true);
       }
@@ -197,24 +195,26 @@ function CoursesPageComponent() {
           console.log("CoursesPageComponent: Semesters data received:", data);
           setSemesters(data);
 
-          const currentIdInState = selectedSemesterId; 
-          let newSelectedIdToSet = currentIdInState;
-
+          // Обновленная логика установки selectedSemesterId
           if (data.length > 0) {
-            const isValidCurrentId = currentIdInState && data.some(s => s.id === currentIdInState);
-            if (!isValidCurrentId) { 
-              console.log("CoursesPageComponent: Current selectedId '", currentIdInState, "' is null or not valid. Setting to first semester:", data[0].id);
-              newSelectedIdToSet = data[0].id;
+            const initialParse = searchParams.get('initialParseCompleted') === 'true';
+            const currentSelectedIsValid = selectedSemesterId && data.some(s => s.id === selectedSemesterId);
+
+            if (initialParse || !currentSelectedIsValid) {
+              console.log(`CoursesPageComponent: Setting selectedSemesterId to first available: ${data[0].id} (initialParse: ${initialParse}, currentSelectedIsValid: ${currentSelectedIsValid})`);
+              setSelectedSemesterId(data[0].id);
+            } 
+            // Если currentSelectedIsValid и это не initialParse, то selectedSemesterId остается прежним (пользовательский выбор не трогаем)
+            // Иначе, если initialParseCompleted=true, мы всегда выбираем первый семестр
+            else if (initialParse && currentSelectedIsValid && selectedSemesterId !== data[0].id) {
+                 console.log(`CoursesPageComponent: initialParse=true, forcing selectedSemesterId to first available: ${data[0].id} even if current was valid.`);
+                 setSelectedSemesterId(data[0].id); // Принудительно выбираем первый при initialParse, если текущий валидный, но не первый
             }
-          } else { 
-            console.log("CoursesPageComponent: No semester data received. Setting selectedId to null.");
-            newSelectedIdToSet = null;
+          } else {
+            console.log("CoursesPageComponent: No semester data, setting selectedSemesterId to null.");
+            setSelectedSemesterId(null); // Если нет семестров, сбрасываем выбор
           }
-          
-          if (newSelectedIdToSet !== currentIdInState) { 
-              console.log("CoursesPageComponent: setSelectedSemesterId to '", newSelectedIdToSet, "' (was '", currentIdInState, "')");
-              setSelectedSemesterId(newSelectedIdToSet);
-          }
+
           setSemestersLoading(false); 
         }
       } catch (error) {
@@ -231,17 +231,30 @@ function CoursesPageComponent() {
     return () => {
       isMounted = false; 
     };
-  }, [token, router]);
+  }, [token, searchParams, router]);
 
   // Загрузка предметов для выбранного семестра
   useEffect(() => {
     console.log("CoursesPageComponent: Subjects useEffect triggered. SelectedSemesterId:", selectedSemesterId, "Token:", token);
-    if (!selectedSemesterId || !token) {
-        console.log("CoursesPageComponent: No selectedSemesterId or token, skipping subject fetch.");
+    if (!token) { // Если нет токена, ничего не делаем
+        console.log("CoursesPageComponent: No token, skipping subject fetch.");
         return;
     }
+
+    if (!selectedSemesterId) { // Если ID семестра не выбран (стал null)
+        console.log("CoursesPageComponent: No selectedSemesterId, clearing subjects for all semesters and skipping fetch.");
+        // Очищаем предметы для всех семестров, если selectedSemesterId стал null
+        // Это предотвратит отображение предметов от предыдущего семестра, если новый selectedSemesterId это null
+        setSemesters(prevSemesters => prevSemesters.map(s => 
+            s.subjects !== undefined ? { ...s, subjects: undefined, subjectsLoading: false, subjectsError: null } : s
+        ));
+        return;
+    }
+
+    // Если selectedSemesterId ЕСТЬ и токен ЕСТЬ, продолжаем с загрузкой
     const fetchSubjects = async () => {
       console.log(`CoursesPageComponent: fetchSubjects called for semesterId: ${selectedSemesterId}.`);
+      // Устанавливаем subjectsLoading и очищаем subjects только для ЦЕЛЕВОГО семестра
       setSemesters(prevSemesters => prevSemesters.map(s => 
         s.id === selectedSemesterId ? { ...s, subjectsLoading: true, subjectsError: null, subjects: undefined } : s
       ));
@@ -268,8 +281,9 @@ function CoursesPageComponent() {
         ));
       }
     };
+
     fetchSubjects();
-  }, [selectedSemesterId, token]);
+  }, [selectedSemesterId, token]); // Зависимости: selectedSemesterId и token
 
    // Загрузка заданий для раскрытого предмета (ленивая)
   const handleToggleSubject = useCallback(async (subjectId: number) => {
@@ -407,7 +421,11 @@ function CoursesPageComponent() {
           return semester;
         })
       );
-      setEstimatesRefreshSuccess(`Оценки времени для задач в семестре "${semesters.find(s=>s.id === selectedSemesterId)?.name}" успешно обновлены! Откройте предмет, чтобы увидеть их.`);
+
+      const semesterName = semesters.find(s => s.id === selectedSemesterId)?.name || "";
+      const displaySemesterName = semesterName.includes("-") ? semesterName.split("-")[0] : semesterName;
+
+      setEstimatesRefreshSuccess(`Оценки времени для задач в семестре "${displaySemesterName}" успешно обновлены! Откройте предмет, чтобы увидеть их.`);
 
     } catch (error) {
       console.error("CoursesPageComponent: Error refreshing task estimates:", error);
@@ -615,7 +633,7 @@ function CoursesPageComponent() {
                         Обновляем оценки...
                       </span>
                     ) : (
-                      'Обновить оценки времени задач нейросетью'
+                      'Актуализировать семестр (ИИ)'
                     )}
                   </button>
                   {estimatesRefreshError && (
