@@ -51,12 +51,23 @@ public class CourseQueryService {
             .sorted(Map.Entry.<Date, List<Subject>>comparingByKey().reversed())
             .forEachOrdered(e -> sortedSubjectsBySemesterDate.put(e.getKey(), e.getValue()));
 
-        return sortedSubjectsBySemesterDate.keySet().stream()
-                .map(sqlDate -> {
+        return sortedSubjectsBySemesterDate.entrySet().stream()
+                .map(entry -> {
+                    Date sqlDate = entry.getKey();
+                    List<Subject> subjectsInGroup = entry.getValue();
                     LocalDate localDate = sqlDate.toLocalDate();
                     String semesterId = localDate.format(DATE_FORMATTER);
                     String semesterName = formatSemesterName(localDate);
-                    return new SemesterDto(semesterId, semesterName);
+
+                    String lastRefreshTimestampStr = null;
+                    if (!subjectsInGroup.isEmpty()) {
+                        Subject firstSubject = subjectsInGroup.get(0); // Берем из первого предмета группы
+                        if (firstSubject.getLastAiRefreshTimestamp() != null) {
+                            // Форматируем LocalDateTime в строку ISO_LOCAL_DATE_TIME (e.g., "2011-12-03T10:15:30")
+                            lastRefreshTimestampStr = firstSubject.getLastAiRefreshTimestamp().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                        }
+                    }
+                    return new SemesterDto(semesterId, semesterName, lastRefreshTimestampStr);
                 })
                 .collect(Collectors.toList());
     }

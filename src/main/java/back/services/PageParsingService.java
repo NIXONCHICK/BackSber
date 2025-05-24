@@ -15,6 +15,8 @@ public class PageParsingService {
 
     Connection connection = Jsoup.connect(url)
         .cookies(cookies)
+        .followRedirects(true)
+        .maxBodySize(0)
         .timeout(10 * 1000);
 
     return connection.get();

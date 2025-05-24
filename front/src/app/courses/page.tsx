@@ -33,6 +33,7 @@ interface SemesterDto {
   subjects?: SubjectDto[]; 
   subjectsLoading?: boolean;
   subjectsError?: string | null;
+  lastAiRefreshTimestamp?: string | null;
 }
 
 // Примерные мок-данные
@@ -101,6 +102,7 @@ function CoursesPageComponent() {
   const [estimatesRefreshing, setEstimatesRefreshing] = useState(false);
   const [estimatesRefreshError, setEstimatesRefreshError] = useState<string | null>(null);
   const [estimatesRefreshSuccess, setEstimatesRefreshSuccess] = useState<string | null>(null);
+  const [isAutoRefreshing, setIsAutoRefreshing] = useState(false);
 
   // Функция для получения дат начала и конца семестра
   const getSemesterDates = (semesterId: string | null): { startDate?: string; endDate?: string } => {
@@ -146,6 +148,89 @@ function CoursesPageComponent() {
     }
     return name; // Если нет дефиса, возвращаем как есть
   };
+
+  // Функция для обновления оценок времени задач семестра
+  const handleRefreshTaskEstimates = useCallback(async () => {
+    if (!selectedSemesterId || !token) {
+      setEstimatesRefreshError("Не выбран семестр или отсутствует аутентификация.");
+      return;
+    }
+    console.log(`CoursesPageComponent: handleRefreshTaskEstimates called for semesterId: ${selectedSemesterId}`);
+    // Определяем, ручной это вызов или автоматический
+    const isManualCall = !isAutoRefreshing; 
+    if (isManualCall) {
+        setEstimatesRefreshing(true); // Для ручного вызова показываем основной спиннер на кнопке
+    }
+    // Для автоматического вызова estimatesRefreshing не трогаем, чтобы не менять кнопку, 
+    // но isAutoRefreshing уже true
+
+    setEstimatesRefreshError(null);
+    setEstimatesRefreshSuccess(null);
+
+    try {
+      const response = await fetch(`/api/tasks/time-estimate/semester/refresh?date=${selectedSemesterId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Не удалось получить детали ошибки при обновлении оценок.' }));
+        throw new Error(errorData.message || `Ошибка ${response.status}`);
+      }
+      
+      const updatedEstimates: TaskTimeEstimateResponseDto[] = await response.json(); 
+      console.log("CoursesPageComponent: Received updated estimates:", updatedEstimates);
+
+      setSemesters(prevSemesters => 
+        prevSemesters.map(semester => {
+          if (semester.id === selectedSemesterId) {
+            return {
+              ...semester,
+              subjects: semester.subjects?.map(subject => ({
+                ...subject,
+                tasks: subject.tasks?.map(task => {
+                  const updatedEstimate = updatedEstimates.find(est => est.taskId === task.id);
+                  if (updatedEstimate) {
+                    return {
+                      ...task,
+                      estimatedMinutes: updatedEstimate.estimatedMinutes,
+                      timeEstimateExplanation: updatedEstimate.explanation,
+                    };
+                  }
+                  return task;
+                }),
+              })),
+              // Обновляем метку времени последнего обновления для этого семестра на фронте
+              lastAiRefreshTimestamp: new Date().toISOString(), 
+            };
+          }
+          return semester;
+        })
+      );
+
+      if (isManualCall) { // Показываем сообщение об успехе только при ручном обновлении
+        const semesterName = semesters.find(s => s.id === selectedSemesterId)?.name || "";
+        const displaySemesterName = formatSemesterName(semesterName);
+        setEstimatesRefreshSuccess(`Информация по задачам в семестре "${displaySemesterName}" успешно актуализирована! Откройте предмет, чтобы увидеть детали.`);
+      } else {
+        // Для автоматического обновления можно вывести тихое уведомление или лог
+        console.log(`Автоматическое обновление для семестра "${selectedSemesterId}" успешно завершено в фоновом режиме.`);
+      }
+
+    } catch (error) {
+      console.error("CoursesPageComponent: Error refreshing task estimates:", error);
+      if (isManualCall) {
+        setEstimatesRefreshError(error instanceof Error ? error.message : "Неизвестная ошибка при обновлении оценок.");
+      }
+    } finally {
+      if (isManualCall) {
+        setEstimatesRefreshing(false);
+      }
+      // setIsAutoRefreshing(false); // Этот флаг сбрасывается в useEffect, который вызывает авто-обновление
+    }
+  }, [selectedSemesterId, token, semesters, formatSemesterName, isAutoRefreshing /* Убрал setEstimatesRefreshing, setEstimatesRefreshError, setEstimatesRefreshSuccess из зависимостей, если они не нужны для useCallback тут */]);
 
   console.log("CoursesPageComponent: Initial render. Token:", token);
 
@@ -285,6 +370,38 @@ function CoursesPageComponent() {
     fetchSubjects();
   }, [selectedSemesterId, token]); // Зависимости: selectedSemesterId и token
 
+  // Новый useEffect для автоматического обновления оценок, если они устарели
+  const STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000; // 24 часа
+
+  useEffect(() => {
+    if (!selectedSemesterId || !token || estimatesRefreshing || isAutoRefreshing || semesters.length === 0) {
+      return; // Не запускать, если нет выбора, токена, уже идет обновление или нет семестров
+    }
+
+    const latestSemester = semesters[0]; // Предполагаем, что семестры отсортированы (новые в начале)
+  
+    // Запускаем авто-обновление только если выбран ПОСЛЕДНИЙ семестр
+    if (selectedSemesterId !== latestSemester.id) {
+      // console.log(`Авто-обновление: выбран не последний семестр (${selectedSemesterId}), а последний (${latestSemester.id}). Пропускаем.`);
+      return; 
+    }
+
+    // Теперь currentSemesterData - это точно последний семестр
+    const currentSemesterData = latestSemester; 
+    const lastRefreshString = currentSemesterData.lastAiRefreshTimestamp;
+    const lastRefreshTime = lastRefreshString ? new Date(lastRefreshString).getTime() : 0;
+    const now = new Date().getTime();
+
+    if (!lastRefreshTime || (now - lastRefreshTime > STALE_THRESHOLD_MS)) {
+      console.log(`Данные для ПОСЛЕДНЕГО семестра "${currentSemesterData.name}" устарели (ID: ${currentSemesterData.id}, последнее обновление: ${lastRefreshString || 'никогда'}). Запуск автоматического обновления.`);
+      setIsAutoRefreshing(true);
+      handleRefreshTaskEstimates().finally(() => {
+        setIsAutoRefreshing(false);
+        console.log(`Автоматическое обновление для ПОСЛЕДНЕГО семестра "${currentSemesterData.name}" завершено.`);
+      });
+    }
+  }, [selectedSemesterId, semesters, token, estimatesRefreshing, isAutoRefreshing, handleRefreshTaskEstimates]);
+
    // Загрузка заданий для раскрытого предмета (ленивая)
   const handleToggleSubject = useCallback(async (subjectId: number) => {
     console.log(`CoursesPageComponent: handleToggleSubject called for subjectId: ${subjectId}. Current expanded: ${expandedSubjectId}`);
@@ -368,73 +485,6 @@ function CoursesPageComponent() {
     // fromCache: boolean; // Не используется для обновления
   }
 
-  // Функция для обновления оценок времени задач семестра
-  const handleRefreshTaskEstimates = async () => {
-    if (!selectedSemesterId || !token) {
-      setEstimatesRefreshError("Не выбран семестр или отсутствует аутентификация.");
-      return;
-    }
-    console.log(`CoursesPageComponent: handleRefreshTaskEstimates called for semesterId: ${selectedSemesterId}`);
-    setEstimatesRefreshing(true);
-    setEstimatesRefreshError(null);
-    setEstimatesRefreshSuccess(null);
-
-    try {
-      const response = await fetch(`/api/tasks/time-estimate/semester/refresh?date=${selectedSemesterId}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Не удалось получить детали ошибки при обновлении оценок.' }));
-        throw new Error(errorData.message || `Ошибка ${response.status}`);
-      }
-      
-      // Ожидаем List<TaskTimeEstimateResponseDto>
-      const updatedEstimates: TaskTimeEstimateResponseDto[] = await response.json(); 
-      console.log("CoursesPageComponent: Received updated estimates:", updatedEstimates);
-
-      // Обновляем состояние `semesters` новыми оценками
-      setSemesters(prevSemesters => 
-        prevSemesters.map(semester => {
-          if (semester.id === selectedSemesterId) {
-            return {
-              ...semester,
-              subjects: semester.subjects?.map(subject => ({
-                ...subject,
-                tasks: subject.tasks?.map(task => {
-                  const updatedEstimate = updatedEstimates.find(est => est.taskId === task.id);
-                  if (updatedEstimate) {
-                    return {
-                      ...task,
-                      estimatedMinutes: updatedEstimate.estimatedMinutes,
-                      timeEstimateExplanation: updatedEstimate.explanation,
-                    };
-                  }
-                  return task;
-                }),
-              })),
-            };
-          }
-          return semester;
-        })
-      );
-
-      const semesterName = semesters.find(s => s.id === selectedSemesterId)?.name || "";
-      const displaySemesterName = semesterName.includes("-") ? semesterName.split("-")[0] : semesterName;
-
-      setEstimatesRefreshSuccess(`Оценки времени для задач в семестре "${displaySemesterName}" успешно обновлены! Откройте предмет, чтобы увидеть их.`);
-
-    } catch (error) {
-      console.error("CoursesPageComponent: Error refreshing task estimates:", error);
-      setEstimatesRefreshError(error instanceof Error ? error.message : "Неизвестная ошибка при обновлении оценок.");
-    } finally {
-      setEstimatesRefreshing(false);
-    }
-  };
-
   // --- Отображение состояний загрузки и ошибок ---
   if (semestersLoading) {
     return (
@@ -493,10 +543,11 @@ function CoursesPageComponent() {
               setEstimatesRefreshSuccess(null);
             }}
             disabled={currentSelectedSemesterData?.subjectsLoading && selectedSemesterId === semester.id}
-            className={`mb-2 px-2 py-1 sm:px-4 sm:py-2 md:px-6 md:py-3 text-xs sm:text-sm md:text-base font-medium rounded-lg transition-all duration-300 disabled:opacity-50 disabled:transform-none
-              ${selectedSemesterId === semester.id 
-                ? 'bg-sky-600 text-white shadow-lg transform scale-105' 
-                : 'bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-sky-300'
+            className={`mb-2 px-2 py-1 sm:px-4 sm:py-2 md:px-6 md:py-3 text-xs sm:text-sm md:text-base font-medium rounded-lg transition-all duration-300 disabled:opacity-50 disabled:transform-none 
+              ${
+                selectedSemesterId === semester.id 
+                  ? 'bg-sky-600 text-white shadow-lg transform scale-105' 
+                  : 'bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-sky-300 cursor-pointer'
               }`}
           >
             {formatSemesterName(semester.name)}
@@ -529,7 +580,7 @@ function CoursesPageComponent() {
                 <div key={subject.id} className="bg-slate-800 shadow-xl rounded-lg overflow-hidden">
                   <button
                     onClick={() => handleToggleSubject(subject.id)}
-                    className="w-full flex justify-between items-center p-4 sm:p-5 text-left hover:bg-slate-700/50 transition-colors duration-200 focus:outline-none"
+                    className="w-full flex justify-between items-center p-4 sm:p-5 text-left hover:bg-slate-700/50 transition-colors duration-200 focus:outline-none cursor-pointer"
                   >
                     <h2 className="text-lg sm:text-xl font-semibold text-sky-400">{subject.name}</h2>
                     {subject.tasksLoading ? (
@@ -622,7 +673,7 @@ function CoursesPageComponent() {
                   <button
                     onClick={handleRefreshTaskEstimates}
                     disabled={estimatesRefreshing}
-                    className="w-full max-w-md mx-auto flex justify-center bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 px-5 md:py-3 md:px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition-all duration-300 ease-in-out transform hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="w-full max-w-md mx-auto flex justify-center bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 px-5 md:py-3 md:px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition-all duration-300 ease-in-out transform hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
                   >
                     {estimatesRefreshing ? (
                       <span className="flex items-center">
@@ -630,7 +681,7 @@ function CoursesPageComponent() {
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        Обновляем оценки...
+                        Обновляем информацию...
                       </span>
                     ) : (
                       'Актуализировать семестр (ИИ)'

@@ -18,6 +18,7 @@ interface PlannedTask {
   minutesScheduledToday: number;
   minutesRemainingForTask: number;
   deadline: string;
+  totalEstimatedMinutesForTask?: number;
 }
 
 interface PlannedDay {
@@ -238,7 +239,7 @@ export default function StudyPlanComponent({ semesterId, formattedSemesterName, 
             className="w-full p-2 rounded bg-slate-700 border-slate-600 text-slate-200 focus:ring-sky-500 focus:border-sky-500"
           />
         </div>
-        <div className="flex items-center pt-5">
+        <div className="flex items-center pb-2">
           <label htmlFor="ignoreCompleted" className="flex items-center space-x-2 cursor-pointer">
             <input
               type="checkbox"
@@ -247,7 +248,7 @@ export default function StudyPlanComponent({ semesterId, formattedSemesterName, 
               onChange={(e) => setIgnoreCompleted(e.target.checked)}
               className="form-checkbox h-5 w-5 text-sky-600 bg-slate-700 border-slate-600 rounded focus:ring-sky-500"
             />
-            <span className="text-slate-300 whitespace-nowrap">Не учитывать оцененные/зачтенные</span>
+            <span className="text-slate-300 whitespace-nowrap">Не учитывать оцененные</span>
           </label>
         </div>
       </div>
@@ -342,36 +343,57 @@ export default function StudyPlanComponent({ semesterId, formattedSemesterName, 
             </div>
 
             <div className="space-y-4">
-              {studyPlan.plannedDays.map((day) => (
-                <div key={day.dayNumber} className="p-3 bg-slate-700/50 rounded-md">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-lg font-semibold text-sky-300">
-                      День {day.dayNumber} ({formatDate(day.date)})
-                    </h3>
-                    <p className="text-sm text-slate-400 whitespace-nowrap pl-2">
-                      Общее: {formatMinutes(day.totalMinutesScheduledThisDay)}
-                    </p>
+              {(() => {
+                // Карта для отслеживания суммарного времени, запланированного на каждую задачу в предыдущие дни этого плана
+                const cumulativeTimeSpentOnTaskPriorToCurrentDay = new Map<number, number>();
+
+                return studyPlan.plannedDays.map((day) => (
+                  <div key={day.dayNumber} className="p-3 bg-slate-700/50 rounded-md">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="text-lg font-semibold text-sky-300">
+                        День {day.dayNumber} ({formatDate(day.date)})
+                      </h3>
+                      <p className="text-sm text-slate-400 whitespace-nowrap pl-2">
+                        Общее: {formatMinutes(day.totalMinutesScheduledThisDay)}
+                      </p>
+                    </div>
+                    
+                    {day.tasks && day.tasks.length > 0 ? (
+                      <ul className="space-y-3">
+                        {day.tasks.map((task) => {
+                          const timeSpentOnThisTaskInPreviousDays = cumulativeTimeSpentOnTaskPriorToCurrentDay.get(task.taskId) || 0;
+                          let totalTimeForTaskToShow = task.minutesScheduledToday + task.minutesRemainingForTask; // Запасной вариант
+
+                          if (task.totalEstimatedMinutesForTask !== undefined) {
+                            totalTimeForTaskToShow = task.totalEstimatedMinutesForTask - timeSpentOnThisTaskInPreviousDays;
+                          }
+
+                          // Обновляем кумулятивное время для этой задачи, добавляя время текущего дня,
+                          // это значение будет использовано для следующих дней, если эта задача снова появится.
+                          cumulativeTimeSpentOnTaskPriorToCurrentDay.set(
+                            task.taskId,
+                            timeSpentOnThisTaskInPreviousDays + task.minutesScheduledToday
+                          );
+
+                          return (
+                            <li key={task.taskId} className="p-3 bg-slate-700/60 rounded-md shadow">
+                              <p className="font-semibold text-slate-100 text-base mb-1">{task.taskName}</p>
+                              <div className="flex justify-between items-center text-sm">
+                                <span className="text-sky-300">На сегодня: {formatMinutes(task.minutesScheduledToday)}</span>
+                                <span className="text-xs text-slate-400 pl-2 whitespace-nowrap">
+                                  (всего по задаче: {formatMinutes(Math.max(0, totalTimeForTaskToShow))})
+                                </span>
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    ) : (
+                      <p className="text-slate-500 text-sm italic">Нет задач на этот день.</p>
+                    )}
                   </div>
-                  
-                  {day.tasks && day.tasks.length > 0 ? (
-                    <ul className="space-y-3">
-                      {day.tasks.map((task) => (
-                        <li key={task.taskId} className="p-3 bg-slate-700/60 rounded-md shadow">
-                          <p className="font-semibold text-slate-100 text-base mb-1">{task.taskName}</p>
-                          <div className="flex justify-between items-center text-sm">
-                            <span className="text-sky-300">На сегодня: {formatMinutes(task.minutesScheduledToday)}</span>
-                            <span className="text-xs text-slate-400 pl-2 whitespace-nowrap">
-                              (всего по задаче: {formatMinutes(task.minutesScheduledToday + task.minutesRemainingForTask)})
-                            </span>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-slate-500 text-sm italic">Нет задач на этот день.</p>
-                  )}
-                </div>
-              ))}
+                ));
+              })()}
             </div>
           </>
         )}

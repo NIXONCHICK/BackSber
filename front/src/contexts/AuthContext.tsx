@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode, Dispatch, SetStateAction } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, Dispatch, SetStateAction, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 
 // Тип для данных пользователя, которые мы получаем от бэкенда
@@ -52,7 +52,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       
       if (storedToken && storedUserDataString) {
         const storedUser = JSON.parse(storedUserDataString) as User;
-        setAuthState(prev => ({ // Используем prev, чтобы не затереть isLoggingOut если он был изменен до завершения этого useEffect
+        setAuthState(prev => ({ 
           ...prev,
           token: storedToken,
           user: storedUser,
@@ -70,11 +70,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   }, []);
 
-  const login = (token: string, userData: User) => {
+  // Мемоизируем функции login, logout, setIsLoggingOut, чтобы они не создавались заново при каждом рендере,
+  // если authState не меняется. Это важно для стабильности контекста.
+  const login = useMemo(() => (token: string, userData: User) => {
     try {
       localStorage.setItem(AUTH_TOKEN_KEY, token);
       localStorage.setItem(USER_DATA_KEY, JSON.stringify(userData));
-      setAuthState(prev => ({ // При логине сбрасываем isLoggingOut
+      setAuthState(prev => ({ 
         ...prev,
         token,
         user: userData,
@@ -85,32 +87,39 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     } catch (error) {
       console.error("Error saving auth data to localStorage:", error);
     }
-  };
+  }, []); // Зависимости пусты, т.к. setAuthState стабилен
 
-  const logout = () => {
+  const logout = useMemo(() => () => {
     try {
       localStorage.removeItem(AUTH_TOKEN_KEY);
       localStorage.removeItem(USER_DATA_KEY);
-      // isLoggingOut устанавливается в true из Header.tsx до вызова этой функции
-      // Здесь мы просто сбрасываем аутентификацию
       setAuthState(prev => ({
-        ...prev, // Сохраняем isLoggingOut который был установлен ранее
+        ...prev, 
         token: null,
         user: null,
         isAuthenticated: false,
-        isLoading: false, // Загрузка завершена
+        isLoading: false, 
       }));
     } catch (error) {
       console.error("Error removing auth data from localStorage:", error);
     }
-  };
+  }, []); // Зависимости пусты
 
-  const setIsLoggingOut = (status: boolean) => {
+  const setIsLoggingOut = useMemo(() => (status: boolean) => {
     setAuthState(prev => ({ ...prev, isLoggingOut: status }));
-  };
+  }, []); // Зависимости пусты
+
+  // Мемоизируем объект значения контекста
+  const contextValue = useMemo(() => ({
+    ...authState,
+    login,
+    logout,
+    setAuthState, // setAuthState от useState уже стабилен
+    setIsLoggingOut
+  }), [authState, login, logout, setIsLoggingOut]); // Добавляем login, logout, setIsLoggingOut в зависимости useMemo
 
   return (
-    <AuthContext.Provider value={{ ...authState, login, logout, setAuthState, setIsLoggingOut }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

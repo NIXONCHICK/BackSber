@@ -9,9 +9,14 @@ import lombok.RequiredArgsConstructor;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -37,7 +42,21 @@ public class UserParsingService {
   private final PageParsingService pageParsingService;
   private final OpenRouterService openRouterService;
 
+  @Value("${app.encryption.secret-key}")
+  private String encryptionSecretKey;
 
+  private String decrypt(String strToDecrypt) {
+    try {
+      byte[] keyBytes = encryptionSecretKey.getBytes(StandardCharsets.UTF_8);
+      SecretKeySpec secretKey = new SecretKeySpec(Arrays.copyOf(keyBytes, 16), "AES");
+      Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5PADDING");
+      cipher.init(Cipher.DECRYPT_MODE, secretKey);
+      return new String(cipher.doFinal(Base64.getDecoder().decode(strToDecrypt)));
+    } catch (Exception e) {
+      System.err.println("Error while decrypting: " + e.toString());
+      throw new RuntimeException("Error decrypting password", e);
+    }
+  }
 
   public String validateSfedUCredentialsAndGetSession(String email, String password) {
     try {
@@ -524,7 +543,9 @@ public class UserParsingService {
 
 
   private Float[] parseGrade(String text) {
-    if (text == null) return new Float[]{null, null};
+    if (text == null || text.trim().isEmpty() || text.equals("-")) {
+      return new Float[]{null, null};
+    }
     text = text.replace(',', '.').trim();
     Pattern p = Pattern.compile("(\\d+(\\.\\d+)?)\\s*/\\s*(\\d+(\\.\\d+)?)");
     Matcher m = p.matcher(text);
@@ -634,21 +655,39 @@ public class UserParsingService {
 
     String moodleSession = person.getMoodleSession();
     if (moodleSession == null || moodleSession.trim().isEmpty()) {
-      System.err.println("refreshAndAnalyzeSemesterTasks: Отсутствует Moodle сессия для personId: " + personId + ". Обновление невозможно.");
-      // Можно попытаться обновить сессию здесь, если есть такая логика, или вернуть ошибку
-      return finalResponses; // или бросить исключение
+      System.err.println("refreshAndAnalyzeSemesterTasks: Отсутствует Moodle сессия для personId: " + personId + ". Попытка первоначального получения сессии.");
+      if (person.getEmail() == null || person.getPassword() == null) {
+          System.err.println("Невозможно получить сессию: отсутствуют email или зашифрованный пароль для personId: " + person.getId());
+          return finalResponses;
+      }
+      try {
+          String encryptedPassword = person.getPassword();
+          String decryptedPassword = decrypt(encryptedPassword);
+          moodleSession = validateSfedUCredentialsAndGetSession(person.getEmail(), decryptedPassword);
+          if (moodleSession != null && !moodleSession.trim().isEmpty()) {
+              person.setMoodleSession(moodleSession);
+              personRepository.save(person);
+              System.out.println("Первоначальная сессия успешно получена для пользователя: " + person.getEmail());
+          } else {
+              System.err.println("Не удалось получить первоначальную сессию для пользователя: " + person.getEmail());
+              return finalResponses;
+          }
+      } catch (Exception e) {
+          System.err.println("Ошибка при получении первоначальной сессии для " + person.getEmail() + ": " + e.getMessage());
+          return finalResponses;
+      }
     }
 
     // 1. Парсинг Moodle для целевого семестра
     String myUrl = "https://lms.sfedu.ru/my/";
     Document myDoc;
     try {
-      myDoc = pageParsingService.parsePage(myUrl, moodleSession);
+      myDoc = parsePageWithRefreshLogic(person, myUrl, moodleSession);
       System.out.println("Страница 'My' успешно загружена для определения курсов семестра.");
     } catch (Exception e) {
       e.printStackTrace();
       System.err.println("refreshAndAnalyzeSemesterTasks: Ошибка загрузки страницы 'My': " + e.getMessage());
-      return finalResponses; // или бросить исключение
+      return finalResponses;
     }
 
     Map<String, ParsedSubject> targetSemesterParsedSubjectsMap = new HashMap<>();
@@ -690,7 +729,7 @@ public class UserParsingService {
 
     for (ParsedSubject parsedSubject : targetSemesterParsedSubjectsMap.values()) {
       try {
-        Document subjectDoc = pageParsingService.parsePage(parsedSubject.assignmentsUrl, moodleSession);
+        Document subjectDoc = parsePageWithRefreshLogic(person, parsedSubject.assignmentsUrl, person.getMoodleSession());
         System.out.println("Страница предмета \"" + parsedSubject.name + "\" успешно загружена (обновление семестра).");
 
         Elements assignmentLinks = subjectDoc.select("a.aalink.stretched-link");
@@ -711,7 +750,7 @@ public class UserParsingService {
           
           // Детальный парсинг задания
           try {
-            Document taskDoc = pageParsingService.parsePage(parsedTask.assignmentsUrl, moodleSession);
+            Document taskDoc = parsePageWithRefreshLogic(person, parsedTask.assignmentsUrl, person.getMoodleSession());
             System.out.println("  Детальный парсинг задания \"" + parsedTask.name + "\"...");
 
             Element deadlineDiv = taskDoc.select("div.description-inner > div:has(strong:containsOwn(Срок сдачи))").first();
@@ -1006,7 +1045,69 @@ public class UserParsingService {
          System.out.println("Сохранено/обновлено " + gradingsToSaveOrUpdate.size() + " оценок TaskGrading.");
     }
 
-    System.out.println("Завершено refreshAndAnalyzeSemesterTasks для пользователя " + personId + ". Результатов: " + finalResponses.size());
+    System.out.println("Завершение анализа и сохранения задач для семестра " + semesterKeyDate + ". Всего ответов с оценками времени: " + finalResponses.size());
+
+    // Обновление временной метки последнего AI-обновления для всех предметов этого семестра
+    try {
+        java.sql.Date sqlSemesterKeyDate = java.sql.Date.valueOf(semesterKeyDate);
+        List<Subject> subjectsInSemester = subjectRepository.findAllBySemesterDate(sqlSemesterKeyDate); // Предполагаем, что такой метод есть или его нужно добавить
+        if (!subjectsInSemester.isEmpty()) {
+            LocalDateTime now = LocalDateTime.now();
+            for (Subject subject : subjectsInSemester) {
+                subject.setLastAiRefreshTimestamp(now);
+            }
+            subjectRepository.saveAll(subjectsInSemester);
+            System.out.println("Обновлена метка lastAiRefreshTimestamp для " + subjectsInSemester.size() + " предметов семестра " + semesterKeyDate);
+        }
+    } catch (Exception e) {
+        System.err.println("Ошибка при обновлении lastAiRefreshTimestamp для семестра " + semesterKeyDate + ": " + e.getMessage());
+        // Не прерываем основной поток из-за этого, но логируем ошибку
+    }
+
     return finalResponses;
+  }
+
+  private Document parsePageWithRefreshLogic(Person person, String url, String initialMoodleSession) throws Exception {
+    String currentMoodleSession = initialMoodleSession;
+    int maxRetries = 1; // Позволяем одну попытку обновления сессии
+    for (int attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return pageParsingService.parsePage(url, currentMoodleSession);
+      } catch (IOException e) {
+        if (e.getMessage() != null && e.getMessage().contains("Too many redirects")) {
+          if (attempt < maxRetries) {
+            System.out.println("Обнаружена ошибка 'Too many redirects' при доступе к " + url + ". Попытка обновить сессию для пользователя: " + person.getEmail());
+            if (person.getEmail() == null || person.getPassword() == null) {
+                 System.err.println("Невозможно обновить сессию: отсутствуют email или зашифрованный пароль для personId: " + person.getId());
+                 throw e;
+            }
+            try {
+              String encryptedPassword = person.getPassword();
+              String decryptedPassword = decrypt(encryptedPassword);
+              String newMoodleSession = validateSfedUCredentialsAndGetSession(person.getEmail(), decryptedPassword);
+              if (newMoodleSession != null && !newMoodleSession.trim().isEmpty()) {
+                person.setMoodleSession(newMoodleSession);
+                personRepository.save(person);
+                currentMoodleSession = newMoodleSession;
+                System.out.println("Сессия успешно обновлена для пользователя: " + person.getEmail() + ". Повторная попытка доступа к " + url);
+                continue;
+              } else {
+                System.err.println("Не удалось обновить сессию (новая сессия пуста) для пользователя: " + person.getEmail());
+                throw e;
+              }
+            } catch (Exception refreshException) {
+              System.err.println("Ошибка при попытке обновления сессии для " + person.getEmail() + ": " + refreshException.getMessage());
+              throw e;
+            }
+          } else {
+            System.err.println("Достигнуто максимальное количество попыток обновления сессии для " + url);
+            throw e;
+          }
+        } else {
+          throw e;
+        }
+      }
+    }
+    throw new RuntimeException("Не удалось загрузить страницу " + url + " после попыток обновления сессии.");
   }
 }

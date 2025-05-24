@@ -17,6 +17,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.HashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -150,41 +152,33 @@ public class StudyPlanService {
             }
         }
 
-        List<Integer> initialEstimatedMinutes = filteredTasks.stream()
-            .map(dto -> dto.getEstimatedMinutes() != null ? dto.getEstimatedMinutes() : 0)
-            .collect(Collectors.toList());
-
-        List<Integer> totalScheduledMinutesPerTask = new ArrayList<>(Collections.nCopies(filteredTasks.size(), 0));
-
-        for (PlannedDayDto day : plannedDays) {
-            for (PlannedTaskDto plannedTask : day.getTasks()) {
-                int taskIndex = -1;
-                for(int k=0; k < filteredTasks.size(); k++) {
-                    if(filteredTasks.get(k).getId().equals(plannedTask.getTaskId())) {
-                        taskIndex = k;
-                        break;
-                    }
-                }
-                if (taskIndex != -1) {
-                    totalScheduledMinutesPerTask.set(taskIndex, totalScheduledMinutesPerTask.get(taskIndex) + plannedTask.getMinutesScheduledToday());
-                }
+        // Рассчитываем, сколько всего минут запланировано на каждую задачу в этом плане
+        Map<Long, Integer> totalMinutesScheduledPerTaskInThisPlan = new HashMap<>();
+        for (PlannedDayDto dayLoop : plannedDays) {
+            for (PlannedTaskDto taskLoop : dayLoop.getTasks()) {
+                totalMinutesScheduledPerTaskInThisPlan.merge(taskLoop.getTaskId(), taskLoop.getMinutesScheduledToday(), Integer::sum);
             }
         }
-        
-        for (PlannedDayDto day : plannedDays) {
-            for (PlannedTaskDto plannedTask : day.getTasks()) {
-                int taskIndex = -1;
-                 for(int k=0; k < filteredTasks.size(); k++) {
-                    if(filteredTasks.get(k).getId().equals(plannedTask.getTaskId())) {
-                        taskIndex = k;
-                        break;
+
+        // Устанавливаем minutesRemainingForTask для каждой задачи в каждом дне
+        for (PlannedDayDto dayLoop : plannedDays) {
+            for (PlannedTaskDto plannedTaskLoop : dayLoop.getTasks()) {
+                // Берем общее количество минут, запланированных на эту задачу во всем текущем плане
+                int totalTaskTimeInThisPlan = totalMinutesScheduledPerTaskInThisPlan.getOrDefault(plannedTaskLoop.getTaskId(), 0);
+
+                int minutesScheduledBeforeThisDay = 0;
+                // Суммируем минуты, запланированные для этой задачи в предыдущие дни этого плана
+                for (PlannedDayDto prevDay : plannedDays) {
+                    if (prevDay.getDate().isBefore(dayLoop.getDate())) {
+                        for (PlannedTaskDto taskInPrevDay : prevDay.getTasks()) {
+                            if (taskInPrevDay.getTaskId().equals(plannedTaskLoop.getTaskId())) {
+                                minutesScheduledBeforeThisDay += taskInPrevDay.getMinutesScheduledToday();
+                            }
+                        }
                     }
                 }
-                if (taskIndex != -1) {
-                    int totalEstimate = initialEstimatedMinutes.get(taskIndex);
-                    int totalScheduled = totalScheduledMinutesPerTask.get(taskIndex);
-                    plannedTask.setMinutesRemainingForTask(Math.max(0, totalEstimate - totalScheduled));
-                }
+                // "Всего по задаче" на этот день = (ВсегоЗапланированоВПлане) - (СделаноДоЭтогоДняВПлане)
+                plannedTaskLoop.setMinutesRemainingForTask(Math.max(0, totalTaskTimeInThisPlan - minutesScheduledBeforeThisDay));
             }
         }
 
