@@ -75,7 +75,12 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex flex-col justify-center items-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex flex-col justify-center items-center p-4 relative">
+      <div className="absolute top-6 left-6">
+        <Link href="/" className="text-xl font-bold text-white hover:text-sky-400 transition-colors">
+          DeadlineMaster
+        </Link>
+      </div>
       <div className="w-full max-w-lg bg-slate-800 shadow-2xl rounded-xl p-8">
         <h1 className="text-4xl font-bold text-center text-sky-400 mb-2">
           Создание Аккаунта
