@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 export default function RegisterPage() {
   const router = useRouter();
   const { login } = useAuth();
-  const [fullName, setFullName] = useState(''); // Предполагаем, что бэкенд ожидает полное имя, хотя в RegisterRequest его нет. Пока оставим для UI.
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -18,7 +18,6 @@ export default function RegisterPage() {
   const [loadingMessage, setLoadingMessage] = useState('Регистрация...');
 
   const validateEmail = (email: string) => {
-    // Регулярное выражение для проверки email на домен @sfedu.ru
     const emailRegex = /^[\w-\.]+@sfedu\.ru$/;
     return emailRegex.test(email);
   };
@@ -32,7 +31,7 @@ export default function RegisterPage() {
 
     if (!validateEmail(email)) {
       setError('Пожалуйста, используйте email адрес с доменом sfedu.ru.');
-      setIsLoading(false); // Убедимся, что загрузка выключена
+      setIsLoading(false);
       return;
     }
 
@@ -43,26 +42,18 @@ export default function RegisterPage() {
     }
 
     try {
-      const response = await fetch('/api/auth/register', { // Используем наш Next.js прокси
+      const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        // Отправляем только те поля, которые ожидает RegisterRequest на бэкенде
-        // Поле role больше не отправляется явно с фронта,
-        // но на бэкенде оно все еще в RegisterRequest DTO (для @NotNull).
-        // Бэкенд теперь сам устанавливает Role.STUDENT.
-        // Чтобы запрос проходил валидацию на бэке, временно будем отправлять 'STUDENT'
         body: JSON.stringify({ email, password, role: 'STUDENT' }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        // Теперь data.message должно содержать более конкретную ошибку от бэкенда
         const errorMessage = data.message || 'Ошибка регистрации. Пожалуйста, проверьте свои данные.';
-        // Можно также использовать data.errorCode для более сложной логики, если потребуется
-        // например, if (data.errorCode === "INVALID_SFEDU_EMAIL") { ... }
         setError(errorMessage);
         setIsLoading(false);
         return;
@@ -71,10 +62,8 @@ export default function RegisterPage() {
       setLoadingMessage('Завершаем регистрацию...');
       login(data.token, { id: data.id, email: data.email, role: data.role });
       
-      // Устанавливаем флаг в localStorage перед редиректом
       localStorage.setItem('needsInitialParsing', 'true');
 
-      // Редирект на главную страницу после успешной регистрации и входа
       router.push('/');
 
     } catch (err) {
@@ -106,7 +95,7 @@ export default function RegisterPage() {
             <input
               type="email"
               name="email"
-              id="email-register" // Изменил id, чтобы не конфликтовал с LoginPage, если они когда-то будут на одной DOM-странице
+              id="email-register"
               autoComplete="email"
               required
               value={email}

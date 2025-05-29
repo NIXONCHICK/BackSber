@@ -8,14 +8,13 @@ import lombok.NoArgsConstructor;
 public class TaskDto {
     private Long id;
     private String name;
-    private String deadline; // Формат ГГГГ-ММ-ДД или null
-    private String status;   // "Оценено", "Сдано", "Не сдано", "Зачет"
-    private String grade;    // Оценка как строка или null
-    private String description; // или null
-    private Integer estimatedMinutes; // Оценка времени в минутах
-    private String timeEstimateExplanation; // Объяснение оценки
+    private String deadline;
+    private String status;
+    private String grade;
+    private String description;
+    private Integer estimatedMinutes;
+    private String timeEstimateExplanation;
 
-    // Явно определенный конструктор
     public TaskDto(Long id, String name, String deadline, String status, String grade, String description, Integer estimatedMinutes, String timeEstimateExplanation) {
         this.id = id;
         this.name = name;

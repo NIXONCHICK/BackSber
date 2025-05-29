@@ -1,0 +1,48 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/back_performance_test_db
+    username: perf_user
+    password: perf_pass
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 50
+      minimum-idle: 10
+      connection-timeout: 30000
+      idle-timeout: 300000
+      max-lifetime: 1800000
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
+        batch_versioned_data: true
+  
+  security:
+    enabled: true
+  
+  logging:
+    level:
+      back: WARN
+      org.springframework: WARN
+      org.hibernate: WARN
+      com.zaxxer.hikari: INFO
+      
+server:
+  port: 0
+  tomcat:
+    threads:
+      max: 200
+      min-spare: 10
+
+# Настройки для нагрузочного тестирования
+performance:
+  jwt:
+    secret-key: "performance-test-secret-key-for-load-testing-very-long-key-minimum-256-bits"
+    expiration-ms: 3600000 

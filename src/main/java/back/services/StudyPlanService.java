@@ -24,9 +24,7 @@ import java.util.HashMap;
 @RequiredArgsConstructor
 public class StudyPlanService {
 
-    private static final int DEFAULT_DAILY_MINUTES_PER_DAY = 3 * 60; // 180 минут (дефолтное значение, если пользователь не указал)
-    private static final int DEADLINE_INCREASE_MAX_MINUTES_PER_DAY = 6 * 60; // Максимальный потолок для дней перед дедлайном
-    private static final int DAYS_BEFORE_DEADLINE_TO_INCREASE_HOURS = 3;
+    private static final int DEFAULT_DAILY_MINUTES_PER_DAY = 3 * 60;    private static final int DEADLINE_INCREASE_MAX_MINUTES_PER_DAY = 6 * 60;     private static final int DAYS_BEFORE_DEADLINE_TO_INCREASE_HOURS = 3;
 
     public StudyPlanResponse generateStudyPlan(
             List<TaskForStudyPlanDto> tasksDtos,
@@ -152,7 +150,6 @@ public class StudyPlanService {
             }
         }
 
-        // Рассчитываем, сколько всего минут запланировано на каждую задачу в этом плане
         Map<Long, Integer> totalMinutesScheduledPerTaskInThisPlan = new HashMap<>();
         for (PlannedDayDto dayLoop : plannedDays) {
             for (PlannedTaskDto taskLoop : dayLoop.getTasks()) {
@@ -160,14 +157,11 @@ public class StudyPlanService {
             }
         }
 
-        // Устанавливаем minutesRemainingForTask для каждой задачи в каждом дне
         for (PlannedDayDto dayLoop : plannedDays) {
             for (PlannedTaskDto plannedTaskLoop : dayLoop.getTasks()) {
-                // Берем общее количество минут, запланированных на эту задачу во всем текущем плане
                 int totalTaskTimeInThisPlan = totalMinutesScheduledPerTaskInThisPlan.getOrDefault(plannedTaskLoop.getTaskId(), 0);
 
                 int minutesScheduledBeforeThisDay = 0;
-                // Суммируем минуты, запланированные для этой задачи в предыдущие дни этого плана
                 for (PlannedDayDto prevDay : plannedDays) {
                     if (prevDay.getDate().isBefore(dayLoop.getDate())) {
                         for (PlannedTaskDto taskInPrevDay : prevDay.getTasks()) {
@@ -177,7 +171,6 @@ public class StudyPlanService {
                         }
                     }
                 }
-                // "Всего по задаче" на этот день = (ВсегоЗапланированоВПлане) - (СделаноДоЭтогоДняВПлане)
                 plannedTaskLoop.setMinutesRemainingForTask(Math.max(0, totalTaskTimeInThisPlan - minutesScheduledBeforeThisDay));
             }
         }

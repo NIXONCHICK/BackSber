@@ -9,8 +9,8 @@ import java.util.List;
 @Data
 @Builder
 public class PlannedDayDto {
-    private int dayNumber; // Порядковый номер дня в плане
-    private LocalDate date; // Конкретная дата
+    private int dayNumber;
+    private LocalDate date;
     private int totalMinutesScheduledThisDay;
     private List<PlannedTaskDto> tasks;
 } 

@@ -25,23 +25,18 @@ export default function Header() {
 
   return (
     <header className="bg-slate-800 text-white shadow-md w-full">
-      {/* Навигация с отступами, но без container mx-auto */}
       <nav className="px-6 py-3 flex justify-between items-center">
         <Link href="/" className="text-xl font-bold hover:text-sky-400 transition-colors">
           DeadlineMaster
         </Link>
         <div className="flex items-center space-x-4">
-          {/* <Link href="/courses" className="hover:text-sky-400 transition-colors">
-            Предметы
-          </Link> */}
+
           {!isLoading && (
             <>
               {isAuthenticated && user ? (
                 <>
                   <span className="text-sm text-slate-300 mr-3">{user.email}</span>
-                  {/* <Link href="/profile" className="text-sm hover:text-sky-400 transition-colors">
-                    Профиль
-                  </Link> */}
+
                   <button
                     onClick={handleLogout}
                     className="bg-sky-600 hover:bg-sky-700 text-white py-2 px-4 rounded-md transition-colors text-sm"

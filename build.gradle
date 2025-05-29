@@ -45,8 +45,75 @@ dependencies {
     implementation 'ai.djl.huggingface:tokenizers:0.32.0'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    
+    // TestContainers для тестирования с реальной БД
+    testImplementation 'org.testcontainers:junit-jupiter:1.19.0'
+    testImplementation 'org.testcontainers:postgresql:1.19.0'
+    testImplementation 'org.testcontainers:testcontainers:1.19.0'
+    
+    // Функциональные тесты
+    testImplementation 'io.rest-assured:rest-assured:5.4.0'
+    testImplementation 'io.rest-assured:json-path:5.4.0'
+    testImplementation 'org.awaitility:awaitility:4.2.0'
+    testImplementation 'org.hamcrest:hamcrest:2.2'
+    
+    // Нагрузочные тесты  
+    testImplementation 'com.github.ben-manes.caffeine:caffeine:3.1.8'
+    testImplementation 'org.apache.commons:commons-lang3:3.14.0'
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+    // Исключаем функциональные и нагрузочные тесты из обычного запуска
+    exclude '**/functional/**'
+    exclude '**/performance/**'
+}
+
+// Задача для запуска функциональных тестов
+task functionalTest(type: Test) {
+    description = 'Запускает функциональные тесты'
+    group = 'verification'
+    
+    useJUnitPlatform()
+    include '**/functional/**'
+    
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    
+    // Больше памяти для функциональных тестов
+    maxHeapSize = '1g'
+    
+    testLogging {
+        events "passed", "skipped", "failed"
+        showStandardStreams = true
+    }
+}
+
+// Задача для запуска нагрузочных тестов
+task performanceTest(type: Test) {
+    description = 'Запускает нагрузочные тесты'
+    group = 'verification'
+    
+    useJUnitPlatform()
+    include '**/performance/**'
+    
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    
+    // Больше памяти и времени для нагрузочных тестов
+    maxHeapSize = '2g'
+    systemProperty 'junit.jupiter.execution.timeout.default', '10m'
+    
+    testLogging {
+        events "passed", "skipped", "failed"
+        showStandardStreams = true
+    }
+}
+
+// Задача для запуска всех типов тестов
+task allTests {
+    description = 'Запускает все типы тестов: unit, integration, functional, performance'
+    group = 'verification'
+    
+    dependsOn test, functionalTest, performanceTest
 }

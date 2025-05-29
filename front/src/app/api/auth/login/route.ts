@@ -3,7 +3,6 @@ import { type NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    // URL вашего реального бэкенд API
     const backendUrl = `${process.env.BACKEND_API_URL}/api/auth/login`;
 
     const backendResponse = await fetch(backendUrl, {
@@ -20,9 +19,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(data, { status: backendResponse.status });
     }
 
-    // Мы можем захотеть установить cookie с токеном здесь
-    // Например: response.cookies.set('token', data.token, { httpOnly: true, path: '/' });
-    // Пока просто возвращаем данные, включая токен
     return NextResponse.json(data, { status: backendResponse.status });
 
   } catch (error) {

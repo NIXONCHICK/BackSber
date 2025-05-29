@@ -11,10 +11,9 @@ import java.util.Date;
 public class TaskForStudyPlanDto {
     private Long id;
     private String name;
-    private Date originalDeadline; // Сохраняем оригинальный Date дедлайн из Task entity
-    private LocalDateTime deadlineForPlanning; // LocalDateTime для удобства в StudyPlanService
+    private Date originalDeadline;
+    private LocalDateTime deadlineForPlanning;
     private Integer estimatedMinutes;
     private String subjectName;
-    private String status; // "Оценено", "Сдано", "Не сдано", "Зачет"
-    // Можно добавить и другие поля из Task, если они понадобятся в StudyPlanService
-} 
+    private String status;
+}

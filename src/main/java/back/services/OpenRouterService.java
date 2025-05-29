@@ -537,15 +537,13 @@ public class OpenRouterService {
                         .estimatedMinutes(task.getEstimatedMinutes() != null ? task.getEstimatedMinutes() : 0)
                         .explanation("Не удалось обновить оценку: " + e.getMessage().substring(0, Math.min(100, e.getMessage().length())))
                         .createdAt(task.getTimeEstimateCreatedAt() != null ? task.getTimeEstimateCreatedAt() : new Date())
-                        .fromCache(true) // Указываем, что это старая оценка из-за ошибки
-                        .build());
+                        .fromCache(true)                        .build());
             }
         }
         log.info("Завершено принудительное обновление {} оценок для семестра.", responses.size());
         return responses;
     }
 
-    // Новый метод для анализа семестра
     public String getSemesterAnalysis(String semesterAnalysisPrompt) {
         try {
             RestTemplate restTemplate = new RestTemplate();
@@ -561,9 +559,7 @@ public class OpenRouterService {
             content.put("parts", List.of(part));
 
             Map<String, Object> generationConfig = new HashMap<>();
-            // generationConfig.put("temperature", 0.2); // Можно настроить для более творческих/менее детерминированных ответов
-            generationConfig.put("responseMimeType", "text/plain"); // Ожидаем простой текст
-
+            generationConfig.put("responseMimeType", "text/plain");
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("contents", List.of(content));
             requestBody.put("generationConfig", generationConfig);
@@ -581,7 +577,6 @@ public class OpenRouterService {
                 JsonNode candidatesNode = rootNode.path("candidates");
                 if (candidatesNode.isMissingNode() || !candidatesNode.isArray() || candidatesNode.isEmpty()) {
                     log.error("Gemini API (анализ семестра) вернул ответ без валидного поля 'candidates': {}", responseBody);
-                    // ... (обработка ошибки, если promptFeedback есть)
                     throw new RuntimeException("Gemini API (анализ семестра) вернул неверный формат ответа (отсутствует 'candidates').");
                 }
 
@@ -598,19 +593,16 @@ public class OpenRouterService {
             }
         } catch (Exception e) {
             log.error("Исключение при вызове Gemini API для анализа семестра: {}", e.getMessage(), e);
-            // Можно добавить более специфичную обработку ошибок, если необходимо
             throw new RuntimeException("Ошибка при обращении к сервису анализа семестра: " + e.getMessage(), e);
         }
     }
 
-    // Новый метод для получения задач со статусами
     public List<TaskForStudyPlanDto> findTasksWithStatusForStudyPlan(Long userId, java.sql.Date semesterDate) {
         List<Task> tasks = findTasksForUserBySemesterWithSource(userId, semesterDate); 
         List<TaskForStudyPlanDto> taskDtos = new ArrayList<>();
 
         for (Task task : tasks) {
-            String status = "Не сдано"; // Статус по умолчанию
-            StudentTaskAssignment assignment = studentTaskAssignmentRepository
+            String status = "Не сдано";          StudentTaskAssignment assignment = studentTaskAssignmentRepository
                     .findByTask_IdAndPerson_Id(task.getId(), userId)
                     .orElse(null);
 
@@ -627,7 +619,6 @@ public class OpenRouterService {
                     } else if (!subStatusLower.isEmpty() && !subStatusLower.contains("нет ответа")) {
                         status = "Сдано";
                     }
-                    // Иначе остается "Не сдано"
                 }
             }
 
@@ -639,8 +630,7 @@ public class OpenRouterService {
             taskDtos.add(TaskForStudyPlanDto.builder()
                     .id(task.getId())
                     .name(task.getName())
-                    .originalDeadline(task.getDeadline()) // Сохраняем оригинальный Date
-                    .deadlineForPlanning(deadlineForPlanning)
+                    .originalDeadline(task.getDeadline())                    .deadlineForPlanning(deadlineForPlanning)
                     .estimatedMinutes(task.getEstimatedMinutes())
                     .subjectName(task.getSubject() != null ? task.getSubject().getName() : "Без предмета")
                     .status(status)
@@ -670,7 +660,6 @@ public class OpenRouterService {
             for (ParsedAttachment attachment : parsedTask.attachments) {
                 log.info("Обрабатываем файл из ParsedTask: {}, URL: {}", attachment.fileName, attachment.fileUrl);
                 try {
-                    // Получаем/проверяем сессию перед каждым скачиванием, т.к. она могла обновиться
                     String validMoodleSession = moodleAssignmentService.getValidMoodleSession(person);
                     if (validMoodleSession == null) {
                          log.warn("Не удалось получить/обновить Moodle сессию для пользователя {}. Пропускаем файл {}.", person.getEmail(), attachment.fileName);
@@ -678,8 +667,7 @@ public class OpenRouterService {
                          allText.append("Не удалось скачать файл: проблема с Moodle сессией.\n\n");
                          continue;
                     }
-                    currentMoodleSession = validMoodleSession; // Обновляем текущую сессию на случай, если она изменилась
-
+                    currentMoodleSession = validMoodleSession;
                     java.io.File tempFile = moodleAssignmentService.downloadFile(attachment.fileUrl, currentMoodleSession, person);
                     if (tempFile == null) {
                         log.warn("Не удалось скачать файл {} для задания {}. Пропускаем.", attachment.fileName, parsedTask.name);

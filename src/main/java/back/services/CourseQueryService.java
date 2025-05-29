@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.ArrayList;
-import java.util.LinkedHashMap; // Для сохранения порядка семестров
+import java.util.LinkedHashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -28,7 +28,7 @@ public class CourseQueryService {
 
     private final PersonRepository personRepository;
     private final EnrollmentRepository enrollmentRepository;
-    private final SubjectRepository subjectRepository; // Может и не понадобится напрямую, если все через Enrollment
+    private final SubjectRepository subjectRepository;
     private final TaskRepository taskRepository;
     private final StudentTaskAssignmentRepository studentTaskAssignmentRepository;
     private final TaskGradingRepository taskGradingRepository;
@@ -45,7 +45,6 @@ public class CourseQueryService {
                 .map(Enrollment::getSubject)
                 .collect(Collectors.groupingBy(Subject::getSemesterDate));
 
-        // Сортируем семестры по дате (сначала новые)
         Map<Date, List<Subject>> sortedSubjectsBySemesterDate = new LinkedHashMap<>();
         subjectsBySemesterDate.entrySet().stream()
             .sorted(Map.Entry.<Date, List<Subject>>comparingByKey().reversed())
@@ -61,9 +60,8 @@ public class CourseQueryService {
 
                     String lastRefreshTimestampStr = null;
                     if (!subjectsInGroup.isEmpty()) {
-                        Subject firstSubject = subjectsInGroup.get(0); // Берем из первого предмета группы
+                        Subject firstSubject = subjectsInGroup.get(0);
                         if (firstSubject.getLastAiRefreshTimestamp() != null) {
-                            // Форматируем LocalDateTime в строку ISO_LOCAL_DATE_TIME (e.g., "2011-12-03T10:15:30")
                             lastRefreshTimestampStr = firstSubject.getLastAiRefreshTimestamp().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
                         }
                     }
@@ -75,11 +73,9 @@ public class CourseQueryService {
     private String formatSemesterName(LocalDate semesterStartDate) {
         int year = semesterStartDate.getYear();
         int month = semesterStartDate.getMonthValue();
-        // Примерная логика: Сентябрь-Январь -> Осень, Февраль-Август -> Весна
-        // На Moodle обычно так: "2023 Осенний семестр", "2024 Весенний семестр"
-        if (month >= 9 || month == 1) { // Осенний семестр (учебный год YYYY-(YYYY+1))
+        if (month >= 9 || month == 1) {
             return String.format("%d-%d Осенний", year, year + 1);
-        } else { // Весенний семестр (учебный год (YYYY-1)-YYYY)
+        } else {
             return String.format("%d Весенний", year);
         }
     }
@@ -103,7 +99,6 @@ public class CourseQueryService {
     }
 
     public List<TaskDto> getTasksForSubject(Person person, Long subjectId) {
-        // Найти все задачи для данного предмета
         List<Task> tasks = taskRepository.findAllBySubjectId(subjectId);
         if (tasks.isEmpty()) {
             return Collections.emptyList();
@@ -125,7 +120,6 @@ public class CourseQueryService {
             if (assignment != null) {
                 TaskGrading grading = taskGradingRepository.findByAssignment(assignment);
                 if (grading != null) {
-                    // Логика определения статуса и оценки
                     if (grading.getMark() != null || (grading.getGradingStatus() != null && (grading.getGradingStatus().toLowerCase().contains("оценен") || grading.getGradingStatus().toLowerCase().contains("зачет")))) {
                         status = "Оценено";
                         if (grading.getMark() != null && grading.getMaxMark() != null) {
@@ -133,18 +127,14 @@ public class CourseQueryService {
                         } else if (grading.getMark() != null) {
                              grade = String.valueOf(grading.getMark());
                         } else if (grading.getGradingStatus() != null && grading.getGradingStatus().toLowerCase().contains("зачет")){
-                             grade = "Зачет"; // Если оценка не числовая, а статус "Зачет"
+                             grade = "Зачет";
                              status = "Зачет";
                         } else {
-                             grade = "Оценено"; // Общий случай если оценка есть, но не в формате X/Y
-                        }
+                             grade = "Оценено";                         }
                     } else if (grading.getSubmissionStatus() != null && !grading.getSubmissionStatus().isEmpty() && !grading.getSubmissionStatus().toLowerCase().contains("нет ответа")) {
-                         // Если есть статус отправки и он не "нет ответа", считаем что сдано (на проверке)
-                        status = "Сдано";
+                                                 status = "Сдано";
                     }
-                    // Если описание было спарсено в TaskGrading, оно может быть более актуальным
-                    // Но пока используем описание из Task, как было в парсере
-                }
+                                                        }
             }
             String originalTaskName = task.getName();
             String processedTaskName = originalTaskName;
@@ -153,7 +143,6 @@ public class CourseQueryService {
             }
             taskDtos.add(new TaskDto(task.getId(), processedTaskName, deadline, status, grade, description, task.getEstimatedMinutes(), task.getTimeEstimateExplanation()));
         }
-        // Сортировка задач, например, по дедлайну (сначала те, у кого он есть и раньше)
         taskDtos.sort(Comparator
             .comparing((TaskDto t) -> t.getDeadline() == null ? null : LocalDate.parse(t.getDeadline()), Comparator.nullsLast(Comparator.naturalOrder()))
             .thenComparing(TaskDto::getName, String.CASE_INSENSITIVE_ORDER));

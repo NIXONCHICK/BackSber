@@ -2,12 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import { useAuth } from '@/contexts/AuthContext'; // Если понадобится для API-запросов в будущем
-import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/solid'; // Иконки для аккордеона
+import { useAuth } from '@/contexts/AuthContext';
+import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/solid';
 import { useRouter, useSearchParams } from 'next/navigation';
-import StudyPlanComponent from '@/components/features/StudyPlanComponent'; // <--- Импорт нового компонента
+import StudyPlanComponent from '@/components/features/StudyPlanComponent';
 
-// Типы данных, соответствующие DTO с бэкенда
 interface TaskDto {
   id: number; 
   name: string;
@@ -15,8 +14,8 @@ interface TaskDto {
   status: string;
   grade: string | null;
   description?: string;
-  estimatedMinutes?: number | null;      // Добавлено для оценки времени
-  timeEstimateExplanation?: string | null; // Добавлено для объяснения оценки
+  estimatedMinutes?: number | null;
+  timeEstimateExplanation?: string | null;
 }
 
 interface SubjectDto {
@@ -98,32 +97,26 @@ function CoursesPageComponent() {
   const [semestersLoading, setSemestersLoading] = useState(true);
   const [semestersError, setSemestersError] = useState<string | null>(null);
 
-  // Состояния для обновления оценок времени задач семестра
   const [estimatesRefreshing, setEstimatesRefreshing] = useState(false);
   const [estimatesRefreshError, setEstimatesRefreshError] = useState<string | null>(null);
   const [estimatesRefreshSuccess, setEstimatesRefreshSuccess] = useState<string | null>(null);
   const [isAutoRefreshing, setIsAutoRefreshing] = useState(false);
 
-  // Функция для получения дат начала и конца семестра
   const getSemesterDates = (semesterId: string | null): { startDate?: string; endDate?: string } => {
     if (!semesterId) return {};
 
-    const startDate = semesterId.split('T')[0]; // Пример: "2023-09-01"
+    const startDate = semesterId.split('T')[0];
     const year = parseInt(startDate.substring(0, 4));
     const month = parseInt(startDate.substring(5, 7));
 
     let endDate;
-    if (month >= 9) { // Осенний семестр (сентябрь-январь)
+    if (month >= 9) {
       endDate = `${year + 1}-01-31`;
-    } else if (month <= 2 && month > 0) { // Весенний семестр (февраль-июнь)
-        // Это условие нужно исправить, т.к. месяц с 1 (январь) до 12 (декабрь)
-        // Весенний семестр начинается, например, в феврале (month === 2)
+    } else if (month <= 2 && month > 0) {
         endDate = `${year}-06-30`;
-    } else if (month > 2 && month <= 6) { // Весенний семестр, если начался позже февраля но до июня включительно
+    } else if (month > 2 && month <= 6) {
          endDate = `${year}-06-30`;
-    } else { // Для других случаев (например, летний семестр или не стандартный)
-      // Можно добавить более сложную логику или вернуть что-то по умолчанию
-      // Пока просто +5 месяцев от даты начала для общей логики
+    } else {
       const dateObj = new Date(startDate);
       dateObj.setMonth(dateObj.getMonth() + 5);
       const endYear = dateObj.getFullYear();
@@ -134,35 +127,31 @@ function CoursesPageComponent() {
     return { startDate, endDate };
   };
 
-  // Функция для форматирования имени семестра
   const formatSemesterName = (name: string) => {
-    const parts = name.split(' '); // Разделяем по пробелу, чтобы отделить год(ы) от сезона
-    if (parts.length < 2) return name; // Если формат не "ГГГГ Сезон" или "ГГГГ-ГГГГ Сезон", возвращаем как есть
+    const parts = name.split(' ');
+    if (parts.length < 2) return name;
 
-    const yearPart = parts.slice(0, parts.length - 1).join(' '); // Все, кроме последнего слова (сезона)
-    const seasonPart = parts[parts.length - 1]; // Последнее слово (сезон)
+    const yearPart = parts.slice(0, parts.length - 1).join(' ');
+    const seasonPart = parts[parts.length - 1];
 
     if (yearPart.includes('-')) {
       const firstYear = yearPart.split('-')[0];
       return `${firstYear} ${seasonPart}`;
     }
-    return name; // Если нет дефиса, возвращаем как есть
+    return name;
   };
 
-  // Функция для обновления оценок времени задач семестра
   const handleRefreshTaskEstimates = useCallback(async () => {
     if (!selectedSemesterId || !token) {
       setEstimatesRefreshError("Не выбран семестр или отсутствует аутентификация.");
       return;
     }
     console.log(`CoursesPageComponent: handleRefreshTaskEstimates called for semesterId: ${selectedSemesterId}`);
-    // Определяем, ручной это вызов или автоматический
-    const isManualCall = !isAutoRefreshing; 
+    const isManualCall = !isAutoRefreshing;
     if (isManualCall) {
-        setEstimatesRefreshing(true); // Для ручного вызова показываем основной спиннер на кнопке
+        setEstimatesRefreshing(true);
     }
-    // Для автоматического вызова estimatesRefreshing не трогаем, чтобы не менять кнопку, 
-    // но isAutoRefreshing уже true
+
 
     setEstimatesRefreshError(null);
     setEstimatesRefreshSuccess(null);
@@ -202,20 +191,18 @@ function CoursesPageComponent() {
                   return task;
                 }),
               })),
-              // Обновляем метку времени последнего обновления для этого семестра на фронте
-              lastAiRefreshTimestamp: new Date().toISOString(), 
+              lastAiRefreshTimestamp: new Date().toISOString(),
             };
           }
           return semester;
         })
       );
 
-      if (isManualCall) { // Показываем сообщение об успехе только при ручном обновлении
+      if (isManualCall) {
         const semesterName = semesters.find(s => s.id === selectedSemesterId)?.name || "";
         const displaySemesterName = formatSemesterName(semesterName);
         setEstimatesRefreshSuccess(`Информация по задачам в семестре "${displaySemesterName}" успешно актуализирована! Откройте предмет, чтобы увидеть детали.`);
       } else {
-        // Для автоматического обновления можно вывести тихое уведомление или лог
         console.log(`Автоматическое обновление для семестра "${selectedSemesterId}" успешно завершено в фоновом режиме.`);
       }
 
@@ -228,13 +215,11 @@ function CoursesPageComponent() {
       if (isManualCall) {
         setEstimatesRefreshing(false);
       }
-      // setIsAutoRefreshing(false); // Этот флаг сбрасывается в useEffect, который вызывает авто-обновление
     }
-  }, [selectedSemesterId, token, semesters, formatSemesterName, isAutoRefreshing /* Убрал setEstimatesRefreshing, setEstimatesRefreshError, setEstimatesRefreshSuccess из зависимостей, если они не нужны для useCallback тут */]);
+  }, [selectedSemesterId, token, semesters, formatSemesterName, isAutoRefreshing ]);
 
   console.log("CoursesPageComponent: Initial render. Token:", token);
 
-  // Загрузка семестров
   useEffect(() => {
     console.log("CoursesPageComponent: Semesters useEffect triggered. Token:", token, "Current selectedSemesterId:", selectedSemesterId);
     if (!token) {
@@ -280,7 +265,6 @@ function CoursesPageComponent() {
           console.log("CoursesPageComponent: Semesters data received:", data);
           setSemesters(data);
 
-          // Обновленная логика установки selectedSemesterId
           if (data.length > 0) {
             const initialParse = searchParams.get('initialParseCompleted') === 'true';
             const currentSelectedIsValid = selectedSemesterId && data.some(s => s.id === selectedSemesterId);
@@ -289,15 +273,13 @@ function CoursesPageComponent() {
               console.log(`CoursesPageComponent: Setting selectedSemesterId to first available: ${data[0].id} (initialParse: ${initialParse}, currentSelectedIsValid: ${currentSelectedIsValid})`);
               setSelectedSemesterId(data[0].id);
             } 
-            // Если currentSelectedIsValid и это не initialParse, то selectedSemesterId остается прежним (пользовательский выбор не трогаем)
-            // Иначе, если initialParseCompleted=true, мы всегда выбираем первый семестр
             else if (initialParse && currentSelectedIsValid && selectedSemesterId !== data[0].id) {
                  console.log(`CoursesPageComponent: initialParse=true, forcing selectedSemesterId to first available: ${data[0].id} even if current was valid.`);
-                 setSelectedSemesterId(data[0].id); // Принудительно выбираем первый при initialParse, если текущий валидный, но не первый
+                 setSelectedSemesterId(data[0].id);
             }
           } else {
             console.log("CoursesPageComponent: No semester data, setting selectedSemesterId to null.");
-            setSelectedSemesterId(null); // Если нет семестров, сбрасываем выбор
+            setSelectedSemesterId(null);
           }
 
           setSemestersLoading(false); 
@@ -318,29 +300,24 @@ function CoursesPageComponent() {
     };
   }, [token, searchParams, router]);
 
-  // Загрузка предметов для выбранного семестра
   useEffect(() => {
     console.log("CoursesPageComponent: Subjects useEffect triggered. SelectedSemesterId:", selectedSemesterId, "Token:", token);
-    if (!token) { // Если нет токена, ничего не делаем
+    if (!token) {
         console.log("CoursesPageComponent: No token, skipping subject fetch.");
         return;
     }
 
-    if (!selectedSemesterId) { // Если ID семестра не выбран (стал null)
+    if (!selectedSemesterId) {
         console.log("CoursesPageComponent: No selectedSemesterId, clearing subjects for all semesters and skipping fetch.");
-        // Очищаем предметы для всех семестров, если selectedSemesterId стал null
-        // Это предотвратит отображение предметов от предыдущего семестра, если новый selectedSemesterId это null
-        setSemesters(prevSemesters => prevSemesters.map(s => 
+        setSemesters(prevSemesters => prevSemesters.map(s =>
             s.subjects !== undefined ? { ...s, subjects: undefined, subjectsLoading: false, subjectsError: null } : s
         ));
         return;
     }
 
-    // Если selectedSemesterId ЕСТЬ и токен ЕСТЬ, продолжаем с загрузкой
     const fetchSubjects = async () => {
       console.log(`CoursesPageComponent: fetchSubjects called for semesterId: ${selectedSemesterId}.`);
-      // Устанавливаем subjectsLoading и очищаем subjects только для ЦЕЛЕВОГО семестра
-      setSemesters(prevSemesters => prevSemesters.map(s => 
+      setSemesters(prevSemesters => prevSemesters.map(s =>
         s.id === selectedSemesterId ? { ...s, subjectsLoading: true, subjectsError: null, subjects: undefined } : s
       ));
       try {
@@ -368,26 +345,22 @@ function CoursesPageComponent() {
     };
 
     fetchSubjects();
-  }, [selectedSemesterId, token]); // Зависимости: selectedSemesterId и token
+  }, [selectedSemesterId, token]);
 
-  // Новый useEffect для автоматического обновления оценок, если они устарели
   const STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000; // 24 часа
 
   useEffect(() => {
     if (!selectedSemesterId || !token || estimatesRefreshing || isAutoRefreshing || semesters.length === 0) {
-      return; // Не запускать, если нет выбора, токена, уже идет обновление или нет семестров
+      return;
     }
 
-    const latestSemester = semesters[0]; // Предполагаем, что семестры отсортированы (новые в начале)
+    const latestSemester = semesters[0];
   
-    // Запускаем авто-обновление только если выбран ПОСЛЕДНИЙ семестр
     if (selectedSemesterId !== latestSemester.id) {
-      // console.log(`Авто-обновление: выбран не последний семестр (${selectedSemesterId}), а последний (${latestSemester.id}). Пропускаем.`);
-      return; 
+      return;
     }
 
-    // Теперь currentSemesterData - это точно последний семестр
-    const currentSemesterData = latestSemester; 
+    const currentSemesterData = latestSemester;
     const lastRefreshString = currentSemesterData.lastAiRefreshTimestamp;
     const lastRefreshTime = lastRefreshString ? new Date(lastRefreshString).getTime() : 0;
     const now = new Date().getTime();
@@ -402,7 +375,6 @@ function CoursesPageComponent() {
     }
   }, [selectedSemesterId, semesters, token, estimatesRefreshing, isAutoRefreshing, handleRefreshTaskEstimates]);
 
-   // Загрузка заданий для раскрытого предмета (ленивая)
   const handleToggleSubject = useCallback(async (subjectId: number) => {
     console.log(`CoursesPageComponent: handleToggleSubject called for subjectId: ${subjectId}. Current expanded: ${expandedSubjectId}`);
     if (expandedSubjectId === subjectId) {
@@ -475,17 +447,13 @@ function CoursesPageComponent() {
     return 'text-slate-400';
   };
 
-  // Интерфейс для ответа от API оценки времени
   interface TaskTimeEstimateResponseDto {
     taskId: number;
-    taskName?: string; // Не используется для обновления, но есть в ответе
+    taskName?: string;
     estimatedMinutes: number | null;
     explanation: string | null;
-    // createdAt: string; // Не используется для обновления
-    // fromCache: boolean; // Не используется для обновления
   }
 
-  // --- Отображение состояний загрузки и ошибок ---
   if (semestersLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900 text-sky-400 text-xl">
@@ -499,7 +467,7 @@ function CoursesPageComponent() {
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100 p-6">
         <h1 className="text-3xl font-bold text-red-500 mb-4">Ошибка при загрузке семестров</h1>
         <p className="text-slate-300 text-lg">{semestersError}</p>
-        {/* Можно добавить кнопку "Попробовать снова" */}
+        {}
       </div>
     );
   }
@@ -517,21 +485,16 @@ function CoursesPageComponent() {
   
   const currentSelectedSemesterData = semesters.find(s => s.id === selectedSemesterId);
 
-  // --- Основная разметка страницы --- 
   const selectedSemesterDetails = getSemesterDates(selectedSemesterId);
   const formattedSelectedSemesterName = selectedSemesterId ? 
     semesters.find(s => s.id === selectedSemesterId)?.name || selectedSemesterId :
     null;
   
-  // Для StudyPlanComponent, если имя уже содержит год, не добавляем его снова из formattedSemesterName
-  // formattedSemesterName может быть "Осень 2023-2024"
-  // selectedSemesterId это, например, "2023-09-01T00:00:00"
   const studyPlanSemesterDisplayId = selectedSemesterId ? selectedSemesterId.split('T')[0] : null;
   const studyPlanFormattedSemesterName = formattedSelectedSemesterName;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100 px-4 md:px-6 pt-2 md:pt-3 pb-4 md:pb-6 w-full">
-      {/* Табы семестров */}
       <nav className="mb-6 md:mb-8 flex justify-center space-x-1 sm:space-x-2 md:space-x-4 flex-wrap">
         {semesters.map((semester) => (
           <button
@@ -555,9 +518,8 @@ function CoursesPageComponent() {
         ))}
       </nav>
 
-      {/* Основной контент: Предметы (слева) и План (справа) */}
+
       <div className="flex flex-col lg:flex-row gap-4 md:gap-6">
-        {/* Левая колонка: Предметы */}
         <div className="lg:w-1/2 flex flex-col">
           {selectedSemesterId && currentSelectedSemesterData?.subjectsLoading && (
             <p className="text-center text-sky-400 text-lg my-4">Загрузка предметов для семестра "{currentSelectedSemesterData?.name}"...</p>
@@ -570,7 +532,7 @@ function CoursesPageComponent() {
           )}
 
           {currentSelectedSemesterData && !currentSelectedSemesterData.subjectsLoading && !currentSelectedSemesterData.subjectsError && (
-            <div className="space-y-4 md:space-y-6 flex-grow"> {/* Убрал max-w-4xl mx-auto, добавил flex-grow */}
+            <div className="space-y-4 md:space-y-6 flex-grow">
               {!currentSelectedSemesterData.subjects || currentSelectedSemesterData.subjects.length === 0 && (
                 <div className="p-4 bg-slate-800 rounded-lg shadow-lg h-full flex items-center justify-center">
                    <p className="text-center text-slate-400 text-lg">В семестре "{currentSelectedSemesterData.name}" нет предметов.</p>
@@ -617,8 +579,8 @@ function CoursesPageComponent() {
                                 displayedStatusText = "Не оценено";
                                 statusColorClass = getStatusColor("Не сдано");
                               } else if (gradeFromBackend.toLowerCase() === "оценено" || gradeFromBackend.toLowerCase() === "зачет") {
-                                displayedStatusText = "Не оценено"; // Или можно использовать task.status если он более информативен
-                                statusColorClass = getStatusColor("Не сдано"); // Или свой цвет для такого состояния
+                                displayedStatusText = "Не оценено";
+                                statusColorClass = getStatusColor("Не сдано");
                               } else {
                                 displayedStatusText = originalBackendStatus;
                                 statusColorClass = getStatusColor(originalBackendStatus);
@@ -709,10 +671,8 @@ function CoursesPageComponent() {
            )}
         </div>
 
-        {/* Правая колонка: План семестра */}
         <div className="lg:w-1/2 flex flex-col">
-           {/* Передаем selectedSemesterId и token в StudyPlanComponent */}
-          <StudyPlanComponent 
+          <StudyPlanComponent
             semesterId={studyPlanSemesterDisplayId}
             formattedSemesterName={studyPlanFormattedSemesterName}
             semesterStartDate={selectedSemesterDetails.startDate}

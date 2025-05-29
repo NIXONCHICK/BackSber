@@ -2,19 +2,18 @@
 
 import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
-import { useRouter } from 'next/navigation'; // Для редиректа
-import { useAuth } from '@/contexts/AuthContext'; // Импортируем useAuth
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth(); // Получаем функцию login из контекста
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const validateEmail = (email: string) => {
-    // Регулярное выражение для проверки email на домен @sfedu.ru
     const emailRegex = /^[\w-\.]+@sfedu\.ru$/;
     return emailRegex.test(email);
   };
@@ -32,7 +31,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', { // Используем наш Next.js прокси
+      const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -48,11 +47,8 @@ export default function LoginPage() {
         return;
       }
 
-      // Используем функцию login из AuthContext для сохранения токена и данных пользователя
-      // Backend возвращает: { id, email, role, token }
       login(data.token, { id: data.id, email: data.email, role: data.role });
 
-      // Редирект на главную страницу после успешного входа
       router.push('/');
 
     } catch (err) {

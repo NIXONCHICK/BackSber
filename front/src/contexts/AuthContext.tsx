@@ -3,7 +3,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode, Dispatch, SetStateAction, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 
-// Тип для данных пользователя, которые мы получаем от бэкенда
 interface User {
   id: number;
   email: string;
@@ -14,15 +13,15 @@ interface AuthState {
   token: string | null;
   user: User | null;
   isAuthenticated: boolean;
-  isLoading: boolean; // Для отслеживания первоначальной загрузки токена
-  isLoggingOut: boolean; // Новое состояние для отслеживания процесса выхода
+  isLoading: boolean;
+  isLoggingOut: boolean;
 }
 
 interface AuthContextType extends AuthState {
   login: (token: string, userData: User) => void;
   logout: () => void;
-  setAuthState: Dispatch<SetStateAction<AuthState>>; // Для более гибкого управления состоянием при необходимости
-  setIsLoggingOut: (status: boolean) => void; // Новая функция
+  setAuthState: Dispatch<SetStateAction<AuthState>>;
+  setIsLoggingOut: (status: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -39,13 +38,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     token: null,
     user: null,
     isAuthenticated: false,
-    isLoading: true, // Начинаем с true, пока не проверим localStorage
-    isLoggingOut: false, // Инициализируем новое состояние
+    isLoading: true,
+    isLoggingOut: false,
   });
   const router = useRouter();
 
   useEffect(() => {
-    // При монтировании компонента пытаемся загрузить токен и данные пользователя из localStorage
     try {
       const storedToken = localStorage.getItem(AUTH_TOKEN_KEY);
       const storedUserDataString = localStorage.getItem(USER_DATA_KEY);
@@ -70,8 +68,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   }, []);
 
-  // Мемоизируем функции login, logout, setIsLoggingOut, чтобы они не создавались заново при каждом рендере,
-  // если authState не меняется. Это важно для стабильности контекста.
   const login = useMemo(() => (token: string, userData: User) => {
     try {
       localStorage.setItem(AUTH_TOKEN_KEY, token);
@@ -87,7 +83,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     } catch (error) {
       console.error("Error saving auth data to localStorage:", error);
     }
-  }, []); // Зависимости пусты, т.к. setAuthState стабилен
+  }, []);
 
   const logout = useMemo(() => () => {
     try {
@@ -103,20 +99,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     } catch (error) {
       console.error("Error removing auth data from localStorage:", error);
     }
-  }, []); // Зависимости пусты
+  }, []);
 
   const setIsLoggingOut = useMemo(() => (status: boolean) => {
     setAuthState(prev => ({ ...prev, isLoggingOut: status }));
-  }, []); // Зависимости пусты
+  }, []);
 
-  // Мемоизируем объект значения контекста
   const contextValue = useMemo(() => ({
     ...authState,
     login,
     logout,
-    setAuthState, // setAuthState от useState уже стабилен
+    setAuthState,
     setIsLoggingOut
-  }), [authState, login, logout, setIsLoggingOut]); // Добавляем login, logout, setIsLoggingOut в зависимости useMemo
+  }), [authState, login, logout, setIsLoggingOut]);
 
   return (
     <AuthContext.Provider value={contextValue}>

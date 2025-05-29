@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
 interface Params {
-  subjectId: string; // ID предмета будет строкой из URL
+  subjectId: string;
 }
 
 export async function GET(request: NextRequest, { params }: { params: Params }) {
@@ -11,7 +11,6 @@ export async function GET(request: NextRequest, { params }: { params: Params }) 
       return NextResponse.json({ message: 'Отсутствует ID предмета' }, { status: 400 });
     }
 
-    // ID предмета должен быть числом для бэкенда, поэтому парсим его
     const numericSubjectId = parseInt(subjectId, 10);
     if (isNaN(numericSubjectId)) {
       return NextResponse.json({ message: 'ID предмета должен быть числом' }, { status: 400 });

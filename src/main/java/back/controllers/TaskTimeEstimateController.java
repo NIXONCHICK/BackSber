@@ -66,7 +66,6 @@ public class TaskTimeEstimateController {
             
             TaskTimeEstimateResponse response = openRouterService.getTaskTimeEstimate(taskId, userId);
             
-            // Отправляем электронное письмо с результатом
             if (person != null && person.getEmail() != null) {
                 log.info("Отправка письма с оценкой времени на почту: {}", person.getEmail());
                 emailService.sendTaskTimeEstimateNotification(
@@ -100,7 +99,7 @@ public class TaskTimeEstimateController {
             
             TaskTimeEstimateResponse response = openRouterService.refreshTaskTimeEstimate(taskId, userId);
             
-            // Отправляем электронное письмо с результатом
+            // Отправляе электронное письмо с результатом
             if (person != null && person.getEmail() != null) {
                 log.info("Отправка письма с обновленной оценкой времени на почту: {}", person.getEmail());
                 emailService.sendTaskTimeEstimateNotification(
@@ -139,7 +138,6 @@ public class TaskTimeEstimateController {
             
             List<TaskTimeEstimateResponse> responses = openRouterService.analyzeTasksBySemester(date, userId);
             
-            // Отправляем электронное письмо с результатом
             if (person.getEmail() != null && !responses.isEmpty()) {
                 log.info("Отправка письма с анализом заданий по семестру на почту: {}", person.getEmail());
                 emailService.sendSemesterTasksAnalysisNotification(
@@ -183,7 +181,6 @@ public class TaskTimeEstimateController {
             java.sql.Date semesterSqlDate = openRouterService.determineSemesterDate(localRequestDate);
             LocalDate semesterStartDate = semesterSqlDate.toLocalDate();
 
-            // Используем новый метод для получения задач со статусами
             List<TaskForStudyPlanDto> tasksWithStatus = openRouterService.findTasksWithStatusForStudyPlan(userId, semesterSqlDate);
             log.info("Найдено {} задач (со статусами) для пользователя {} в семестре с датой начала {}", tasksWithStatus.size(), userId, semesterStartDate);
 
@@ -196,7 +193,6 @@ public class TaskTimeEstimateController {
                 log.info("Используется дата начала семестра как дата начала плана: {}", planStartDate);
             }
 
-            // Передаем новые параметры в studyPlanService
             StudyPlanResponse studyPlan = studyPlanService.generateStudyPlan(
                 tasksWithStatus, 
                 semesterStartDate, 
@@ -207,7 +203,6 @@ public class TaskTimeEstimateController {
 
             if (person.getEmail() != null && studyPlan != null && !studyPlan.getPlannedDays().isEmpty()) {
                  log.info("Отправка письма с учебным планом на почту: {} (ОТКЛЮЧЕНО)", person.getEmail());
-                 // emailService.sendStudyPlanNotification(person.getEmail(), studyPlan, semesterStartDate);
             }
 
             return ResponseEntity.ok(studyPlan);
@@ -237,30 +232,23 @@ public class TaskTimeEstimateController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
             }
 
-            // Конвертируем java.util.Date в java.time.LocalDate
             LocalDate localDate = date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
             
-            // Вызываем новый метод из UserParsingService
             List<TaskTimeEstimateResponse> responses = userParsingService.refreshAndAnalyzeSemesterTasks(userId, localDate);
 
-            // Отправляем электронное письмо с результатом
-            // TODO: Возможно, стоит пересмотреть логику отправки письма, 
-            // так как responses теперь содержит не только свежепроанализированные, но и существующие задачи.
-            // Для простоты пока оставим как есть.
             if (person.getEmail() != null && !responses.isEmpty()) {
                 log.info("Отправка письма с результатами обновления и анализа заданий по семестру на почту: {}", person.getEmail());
                 emailService.sendSemesterTasksAnalysisNotification(
                     person.getEmail(),
-                    responses, // Этот метод ожидает список TaskTimeEstimateResponse, что совпадает
-                    date     // Дата для письма остается той же
+                    responses,
+                    date
                 );
             }
 
             return ResponseEntity.ok(responses);
         } catch (Exception e) {
             log.error("Ошибка при обновлении и анализе заданий по семестру: {}", e.getMessage(), e);
-            // Возвращаем более информативный статус ошибки, если это возможно
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); 
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 

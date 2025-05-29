@@ -6,8 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { CoursesPageComponent } from '@/app/courses/page';
 
-// Content of the page, not exported directly
-function PageContent() { 
+function PageContent() {
     const { user, token, isLoading: authLoading } = useAuth();
     const router = useRouter();
     const [parsingMessage, setParsingMessage] = useState<string | null>(null);
@@ -76,7 +75,6 @@ function PageContent() {
     );
 }
 
-// Single default export for the page
 export default function HomePage() {
   return (
     <ProtectedRoute>

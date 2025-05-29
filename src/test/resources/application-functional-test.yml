@@ -1,0 +1,35 @@
+spring:
+  datasource:
+    # Будет переопределено в BaseFunctionalTest через DynamicPropertySource
+    url: jdbc:postgresql://localhost:5432/back_functional_test_db
+    username: test_user
+    password: test_pass
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  
+  security:
+    enabled: true
+  
+  logging:
+    level:
+      org.springframework.security: DEBUG
+      back: DEBUG
+      org.hibernate.SQL: DEBUG
+      org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+      
+server:
+  port: 0  # Random port для тестов
+
+# Настройки для тестирования
+test:
+  jwt:
+    secret-key: "test-secret-key-for-functional-tests-very-long-key-minimum-256-bits"
+    expiration-ms: 3600000  # 1 час 
