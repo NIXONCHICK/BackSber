@@ -85,7 +85,6 @@ public class CourseQueryService {
         try {
             semesterStartDate = LocalDate.parse(semesterId, DATE_FORMATTER);
         } catch (Exception e) {
-            // Handle invalid semesterId format
             return Collections.emptyList();
         }
 

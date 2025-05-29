@@ -3,7 +3,7 @@ package back.dto;
 import lombok.Builder;
 import lombok.Data;
 
-import java.time.LocalDateTime; // Используем LocalDateTime для дедлайна, как в PlannedTaskDto
+import java.time.LocalDateTime;
 import java.util.Date;
 
 @Data

@@ -35,7 +35,6 @@ interface SemesterDto {
   lastAiRefreshTimestamp?: string | null;
 }
 
-// Примерные мок-данные
 const mockSemestersData: SemesterDto[] = [
   {
     id: "sem1",

@@ -180,7 +180,6 @@ export default function StudyPlanComponent({ semesterId, formattedSemesterName, 
     );
   }
 
-  // JSX для настроек плана
   const renderSettingsForm = () => (
     <div className="mb-4 p-3 bg-slate-800/50 rounded-lg shadow">
       <h3 className="text-lg font-semibold text-sky-300 mb-3">Настройки плана</h3>
@@ -331,11 +330,14 @@ export default function StudyPlanComponent({ semesterId, formattedSemesterName, 
                       <ul className="space-y-3">
                         {day.tasks.map((task) => {
                           const timeSpentOnThisTaskInPreviousDays = cumulativeTimeSpentOnTaskPriorToCurrentDay.get(task.taskId) || 0;
-                          let totalTimeForTaskToShow = task.minutesScheduledToday + task.minutesRemainingForTask; // Запасной вариант
-
+                          
+                          let knownRemainingBeforeToday;
                           if (task.totalEstimatedMinutesForTask !== undefined) {
-                            totalTimeForTaskToShow = task.totalEstimatedMinutesForTask - timeSpentOnThisTaskInPreviousDays;
+                            knownRemainingBeforeToday = task.totalEstimatedMinutesForTask - timeSpentOnThisTaskInPreviousDays;
+                          } else {
+                            knownRemainingBeforeToday = task.minutesRemainingForTask; 
                           }
+                          const remainingTimeForTask = knownRemainingBeforeToday - task.minutesScheduledToday;
 
                           cumulativeTimeSpentOnTaskPriorToCurrentDay.set(
                             task.taskId,
@@ -348,7 +350,7 @@ export default function StudyPlanComponent({ semesterId, formattedSemesterName, 
                               <div className="flex justify-between items-center text-sm">
                                 <span className="text-sky-300">На сегодня: {formatMinutes(task.minutesScheduledToday)}</span>
                                 <span className="text-xs text-slate-400 pl-2 whitespace-nowrap">
-                                  (всего по задаче: {formatMinutes(Math.max(0, totalTimeForTaskToShow))})
+                                  всего по задаче осталось ({formatMinutes(Math.max(0, remainingTimeForTask))})
                                 </span>
                               </div>
                             </li>

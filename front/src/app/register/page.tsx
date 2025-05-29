@@ -187,9 +187,6 @@ export default function RegisterPage() {
           </Link>
         </p>
       </div>
-      <footer className="mt-12 text-center text-slate-500 text-sm">
-        &copy; {new Date().getFullYear()} DeadlineMaster. Все права защищены.
-      </footer>
     </div>
   );
 } 

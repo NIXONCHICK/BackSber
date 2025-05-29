@@ -64,7 +64,6 @@ class SimpleFunctionalTest {
     @Order(1)
     @DisplayName("Функциональный тест: Регистрация нового пользователя")
     void shouldRegisterNewUser() {
-        // Подготовка данных
         Map<String, Object> registerRequest = Map.of(
             "email", TEST_EMAIL,
             "password", TEST_PASSWORD,
@@ -182,7 +181,6 @@ class SimpleFunctionalTest {
     @Order(5)
     @DisplayName("Функциональный тест: Валидация данных")
     void shouldValidateRequestData() {
-        // Тест пустого email
         Map<String, Object> emptyEmailRequest = Map.of(
             "email", "",
             "password", "validPassword123",
@@ -201,7 +199,6 @@ class SimpleFunctionalTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, response1.getStatusCode());
 
-        // Тест некорректного email
         Map<String, Object> invalidEmailRequest = Map.of(
             "email", "invalid-email-format",
             "password", "validPassword123",

@@ -72,7 +72,7 @@ class AuthFunctionalTest extends BaseFunctionalTest {
         .when()
             .post("/auth/register")
         .then()
-            .statusCode(409)  // Conflict
+            .statusCode(409)
             .contentType("application/json")
             .body("message", containsString("уже существует"));
             
@@ -121,7 +121,7 @@ class AuthFunctionalTest extends BaseFunctionalTest {
         .when()
             .post("/auth/login")
         .then()
-            .statusCode(401)  // Unauthorized
+            .statusCode(401)
             .contentType("application/json")
             .body("message", containsString("Неверный email или пароль"));
             
@@ -166,7 +166,6 @@ class AuthFunctionalTest extends BaseFunctionalTest {
             .contentType("application/json")
             .body("message", notNullValue());
 
-        // Тест пустого пароля
         String emptyPasswordRequestBody = """
             {
                 "email": "test.validation@sfedu.ru",
@@ -195,7 +194,6 @@ class AuthFunctionalTest extends BaseFunctionalTest {
             throw new IllegalStateException("Токен не был получен в предыдущих тестах");
         }
 
-        // Попытка доступа к ащищенному эндпоинту с токеном
         givenAuthenticatedRequest(registeredUserToken)
         .when()
             .post("/user/initiate-parsing")

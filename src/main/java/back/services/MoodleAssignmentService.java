@@ -204,14 +204,13 @@ public class MoodleAssignmentService {
             return downloadFileWithSession(fileUrl, moodleSession);
         } catch (IOException e) {
             String errorMessage = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
-            // Расширенная проверка на ключевые фразы, указывающие на проблемы с сессией или доступом
-            if (errorMessage.contains("redirected too many") ||      // English
-                errorMessage.contains("слишком много редиректов") || // Russian
-                errorMessage.contains("код: 30") || // Любой 30x код
-                errorMessage.contains("код: 401") || // Unauthorized
-                errorMessage.contains("код: 403") || // Forbidden
-                errorMessage.contains("код: 429") || // Too Many Requests
-                errorMessage.contains("код: 5")   || // Любой 5xx код (серверные ошибки часто связаны с проблемами сессии)
+            if (errorMessage.contains("redirected too many") ||
+                errorMessage.contains("слишком много редиректов") ||
+                errorMessage.contains("код: 30") ||
+                errorMessage.contains("код: 401") ||
+                errorMessage.contains("код: 403") ||
+                errorMessage.contains("код: 429") ||
+                errorMessage.contains("код: 5")   ||
                 errorMessage.contains("forbidden") ||
                 errorMessage.contains("unauthorized") ||
                 errorMessage.contains("доступ запрещен") ||
@@ -309,7 +308,7 @@ public class MoodleAssignmentService {
 
                 String contentDisposition = conn.getHeaderField("Content-Disposition");
                 String actualFileName = fileName;      if (contentDisposition != null) {
-                    String prefix = "filename*=UTF-8''"; // RFC 5987
+                    String prefix = "filename*=UTF-8''";
                     int index = contentDisposition.toLowerCase().indexOf(prefix);
                     if (index > -1) {
                         actualFileName = contentDisposition.substring(index + prefix.length());

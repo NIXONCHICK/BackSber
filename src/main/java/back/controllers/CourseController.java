@@ -24,7 +24,7 @@ public class CourseController {
     @GetMapping("/semesters")
     public ResponseEntity<List<SemesterDto>> getUserSemesters(@AuthenticationPrincipal Person authenticatedPerson) {
         if (authenticatedPerson == null) {
-            return ResponseEntity.status(401).build(); // Unauthorized
+            return ResponseEntity.status(401).build();
         }
         List<SemesterDto> semesters = courseQueryService.getUserSemesters(authenticatedPerson);
         return ResponseEntity.ok(semesters);

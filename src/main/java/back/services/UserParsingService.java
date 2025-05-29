@@ -282,11 +282,10 @@ public class UserParsingService {
 
           parsedTask.submissionForPerson = submission;
 
-          // Вызов анализа нейросетью
           try {
             OpenRouterService.OpenRouterResponse estimateResponse = openRouterService.analyzeParsedTaskAndGetEstimate(
                 parsedTask,
-                parsedSubject.name, // Имя предмета для контекста
+                parsedSubject.name,
                 moodleSession,
                 person
             );
@@ -467,7 +466,6 @@ public class UserParsingService {
       }
     }
     
-    // Save all gradings
     taskGradingRepository.saveAll(gradingsToSave);
 
     if (extractedGroupName != null && !extractedGroupName.isBlank()) {
@@ -845,7 +843,6 @@ public class UserParsingService {
         taskEntity.setDeadline(parsedTask.deadline);
         taskEntity.setSubject(subjectEntity);
 
-        // Обновление вложений
         if (taskEntity.getAttachments() == null) taskEntity.setAttachments(new ArrayList<>());
         taskEntity.getAttachments().clear();
         if (parsedTask.attachments != null) {
@@ -859,7 +856,6 @@ public class UserParsingService {
             }
         }
         
-        // Проверка и вызов анализа
         if (taskEntity.getEstimatedMinutes() != null && !isNewTask) {
             System.out.println("  Задача \"" + taskEntity.getName() + "\": используется существующая оценка времени из БД.");
             finalResponses.add(TaskTimeEstimateResponse.builder()
@@ -946,7 +942,6 @@ public class UserParsingService {
         }
         assignmentsToSaveOrUpdate.add(assignment);
 
-        // TaskGrading
         TaskGrading grading = null;
         if(!isNewAssignment) {
              grading = taskGradingRepository.findByAssignment(assignment);

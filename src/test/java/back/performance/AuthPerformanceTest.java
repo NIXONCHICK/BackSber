@@ -216,7 +216,6 @@ class AuthPerformanceTest extends BasePerformanceTest {
             Map.class
         );
 
-        // Ожидаем ошибку валидации
         if (!response.getStatusCode().is4xxClientError()) {
             throw new RuntimeException("Expected validation error");
         }

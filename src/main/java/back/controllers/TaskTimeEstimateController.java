@@ -99,7 +99,6 @@ public class TaskTimeEstimateController {
             
             TaskTimeEstimateResponse response = openRouterService.refreshTaskTimeEstimate(taskId, userId);
             
-            // Отправляе электронное письмо с результатом
             if (person != null && person.getEmail() != null) {
                 log.info("Отправка письма с обновленной оценкой времени на почту: {}", person.getEmail());
                 emailService.sendTaskTimeEstimateNotification(

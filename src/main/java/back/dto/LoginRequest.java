@@ -1,7 +1,6 @@
 package back.dto;
 
 import jakarta.validation.constraints.*;
-// import jakarta.validation.constraints.Size; // Убираем импорт Size, если он больше не нужен (NotBlank его заменяет для проверки на пустоту)
 import lombok.Data;
 
 @Data
